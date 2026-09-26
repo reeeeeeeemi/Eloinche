@@ -9,15 +9,17 @@ import { awaitsMe } from '@/lib/validation';
 
 export function BottomNav() {
   const path = usePathname();
-  const { uid } = useSession();
+  const { uid, me } = useSession();
   const { data: games } = useData(() => api.getGames(), []);
   const toValidate = (games ?? []).filter(g => awaitsMe(g, uid)).length;
+  const { data: reqs } = useData(() => (me?.is_admin ? api.listJoinRequests() : Promise.resolve([])), [me?.is_admin]);
+  const requests = (reqs ?? []).filter(r => r.status === 'en_attente').length;
 
   const items = [
     { href: '/', label: 'Classement', Icon: Trophy, match: (p: string) => p === '/' || p.startsWith('/joueurs') },
     { href: '/partie', label: 'Partie', Icon: Plus, match: (p: string) => p.startsWith('/partie') || p.startsWith('/nouvelle') },
     { href: '/historique', label: 'Historique', Icon: History, match: (p: string) => p.startsWith('/historique'), badge: toValidate },
-    { href: '/profil', label: 'Profil', Icon: User, match: (p: string) => p.startsWith('/profil') },
+    { href: '/profil', label: 'Profil', Icon: User, match: (p: string) => p.startsWith('/profil'), badge: requests },
   ];
 
   return (

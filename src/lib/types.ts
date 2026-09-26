@@ -33,6 +33,17 @@ export interface Profile {
   games_won: number;
   games_lost: number;
   created_at: string;
+  status: 'en_attente' | 'accepte' | 'refuse'; // accès validé par l'admin
+  is_admin?: boolean;
+}
+
+/** Demande d'accès (compte non accepté), vue par l'admin uniquement. */
+export interface JoinRequest {
+  id: string;
+  display_name: string;
+  email: string | null;
+  status: 'en_attente' | 'refuse';
+  created_at: string;
 }
 
 export interface Game {
@@ -87,7 +98,7 @@ export interface StartGameParams {
 
 // Contrat que la couche data doit respecter (mock aujourd'hui, Supabase demain)
 export interface DataApi {
-  getProfiles(): Promise<Profile[]>;
+  getProfiles(): Promise<Profile[]>;                     // joueurs acceptés uniquement
   getProfile(id: string): Promise<Profile | null>;
   getGames(): Promise<GameWithPlayers[]>;
   getGame(id: string): Promise<GameWithPlayers | null>;
@@ -98,6 +109,8 @@ export interface DataApi {
   deleteRound(gameId: string, index: number): Promise<void>;
   skipDealer(gameId: string): Promise<void>;             // personne ne prend : la donne passe au suivant
   finishGame(gameId: string): Promise<void>;             // en cours -> en attente de validation
+  listJoinRequests(): Promise<JoinRequest[]>;           // admin
+  decideJoinRequest(profileId: string, accept: boolean): Promise<void>; // admin
   confirmGame(gameId: string): Promise<void>;
   contestGame(gameId: string): Promise<void>;
   deleteGame(gameId: string): Promise<void>;

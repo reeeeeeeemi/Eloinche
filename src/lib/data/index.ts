@@ -1,12 +1,11 @@
 /**
  * Point d'entrée unique pour les données. Le front n'importe QUE ce fichier.
- * Aujourd'hui : mock (JSON + localStorage).
- * Demain : on ajoute supabase.ts qui implémente le même DataApi, et on switche ici
- * via NEXT_PUBLIC_DATA_SOURCE. Aucun autre fichier du front ne bouge.
+ * NEXT_PUBLIC_DATA_SOURCE = 'mock' (local : JSON + localStorage) ou 'supabase' (prod).
  */
 import type { DataApi } from '../types';
 import { mockApi } from './mock';
+import { supabaseApi } from './supabase';
 
-export const api: DataApi = mockApi;
-export const DATA_SOURCE = process.env.NEXT_PUBLIC_DATA_SOURCE ?? 'mock';
-export { DB_EVENT } from './mock';
+export const DATA_SOURCE = process.env.NEXT_PUBLIC_DATA_SOURCE === 'supabase' ? 'supabase' : 'mock';
+export const api: DataApi = DATA_SOURCE === 'supabase' ? supabaseApi : mockApi;
+export { DB_EVENT } from './events';

@@ -47,11 +47,13 @@ src/
 supabase/schema.sql       schéma à exécuter plus tard dans Supabase
 ```
 
-## Passage à Supabase (plus tard)
+## Mise en production (Supabase + Vercel)
 
-1. Exécuter `supabase/schema.sql`, activer pg_cron et le magic link.
-2. Créer `src/lib/data/supabase.ts` qui implémente `DataApi` avec des `supabase.rpc(...)`.
-3. Dans `src/lib/data/index.ts`, choisir l'implémentation selon `NEXT_PUBLIC_DATA_SOURCE`.
-4. Remplacer la page `/login` par le formulaire email → magic link.
+1. Supabase : activer pg_cron, exécuter `supabase/schema.sql` (relançable), puis planifier
+   `select cron.schedule('valider-parties-expirees', '0 * * * *', $$ select process_expired_games(); $$);`
+2. Authentication > Sign In / Providers > Email : activé, **« Confirm email » décoché**.
+3. Variables (`.env.local` en local, Settings > Environment Variables sur Vercel) :
+   `NEXT_PUBLIC_DATA_SOURCE=supabase`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (clé publique).
+4. Le **premier compte créé devient admin**. Les suivants arrivent en attente : l'admin les accepte dans son Profil.
 
-Aucune page ni composant n'a besoin de changer.
+`supabase/reset.sql` vide la base (à n'utiliser qu'en phase de mise en place).

@@ -1,20 +1,38 @@
 'use client';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { DB_EVENT, api } from './data';
+import { DATA_SOURCE, DB_EVENT, api } from './data';
 import { getCurrentUid, setCurrentUid } from './data/mock';
+import { subscribeRealtime } from './data/supabase';
+import { supabase } from './supabaseClient';
 import type { Profile } from './types';
 
 interface Session {
   ready: boolean;
   uid: string | null;
   me: Profile | null;
+  /** Mode local : se connecter à la place d'un joueur de test. */
   signInAs: (uid: string) => void;
-  signOut: () => void;
+  signOut: () => Promise<void>;
+  /** Supabase : connexion / inscription par email + mot de passe (le compte arrive en attente). */
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (displayName: string, email: string, password: string) => Promise<void>;
 }
 
 const Ctx = createContext<Session>({
-  ready: false, uid: null, me: null, signInAs: () => {}, signOut: () => {},
+  ready: false, uid: null, me: null,
+  signInAs: () => {}, signOut: async () => {}, signIn: async () => {}, signUp: async () => {},
 });
+
+/** Erreurs d'authentification Supabase -> messages en français. */
+function authMessage(msg: string) {
+  if (/invalid login credentials/i.test(msg)) return 'Email ou mot de passe incorrect.';
+  if (/already registered|already exists/i.test(msg)) return 'Un compte existe déjà avec cet email : connecte-toi.';
+  if (/password should be at least/i.test(msg)) return 'Le mot de passe doit faire au moins 6 caractères.';
+  if (/database error saving new user/i.test(msg)) return 'Ce nom est déjà pris : essaie avec ton prénom et l’initiale de ton nom.';
+  if (/rate limit/i.test(msg)) return 'Trop de tentatives, réessaie dans quelques minutes.';
+  if (/valid email|invalid email/i.test(msg)) return 'Adresse email invalide.';
+  return msg;
+}
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
@@ -22,26 +40,55 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [me, setMe] = useState<Profile | null>(null);
 
   useEffect(() => {
-    const sync = async () => {
-      const u = getCurrentUid();
-      setUid(u);
-      setMe(u ? await api.getProfile(u) : null);
-      setReady(true);
+    let alive = true;
+    const load = async (u: string | null) => {
+      const p = u ? await api.getProfile(u).catch(() => null) : null;
+      if (!alive) return;
+      setUid(u); setMe(p); setReady(true);
     };
-    sync();
+
+    if (DATA_SOURCE === 'mock') {
+      const sync = () => load(getCurrentUid());
+      sync();
+      window.addEventListener(DB_EVENT, sync);
+      return () => { alive = false; window.removeEventListener(DB_EVENT, sync); };
+    }
+
+    // Supabase : session persistée dans le navigateur + temps réel
+    subscribeRealtime();
+    let current: string | null = null;
+    supabase().auth.getSession().then(({ data }) => { current = data.session?.user.id ?? null; load(current); });
+    const { data: sub } = supabase().auth.onAuthStateChange((_evt, session) => {
+      current = session?.user.id ?? null;
+      load(current);
+    });
+    // statut du compte (ex. accepté par l'admin) mis à jour en direct
+    const sync = () => load(current);
     window.addEventListener(DB_EVENT, sync);
-    return () => window.removeEventListener(DB_EVENT, sync);
+    return () => { alive = false; sub.subscription.unsubscribe(); window.removeEventListener(DB_EVENT, sync); };
   }, []);
 
-  return (
-    <Ctx.Provider value={{
-      ready, uid, me,
-      signInAs: id => setCurrentUid(id),
-      signOut: () => setCurrentUid(null),
-    }}>
-      {children}
-    </Ctx.Provider>
-  );
+  const value: Session = {
+    ready, uid, me,
+    signInAs: id => setCurrentUid(id),
+    signOut: async () => {
+      if (DATA_SOURCE === 'mock') setCurrentUid(null);
+      else await supabase().auth.signOut();
+    },
+    signIn: async (email, password) => {
+      const { error } = await supabase().auth.signInWithPassword({ email: email.trim(), password });
+      if (error) throw new Error(authMessage(error.message));
+    },
+    signUp: async (displayName, email, password) => {
+      const { data, error } = await supabase().auth.signUp({
+        email: email.trim(), password, options: { data: { display_name: displayName.trim() } },
+      });
+      if (error) throw new Error(authMessage(error.message));
+      if (!data.session) throw new Error('Compte créé, mais la confirmation par email est activée dans Supabase : désactive « Confirm email ».');
+    },
+  };
+
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
 export const useSession = () => useContext(Ctx);

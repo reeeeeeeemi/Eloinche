@@ -251,3 +251,29 @@ table.stats td:first-child, table.stats th:first-child { text-align: left; }
 .viz-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px; border-radius: 17px;
   border: 1.5px solid var(--line); background: var(--surface); font-size: 14px; color: var(--muted); }
 .viz-chip.on { border-color: var(--chip-line); color: var(--text); font-weight: 600; }
+
+/* ---------- page d'accueil (avant connexion) ---------- */
+.landing { flex: 1; display: flex; flex-direction: column; }
+.landing-hero { background: var(--mint); padding: 56px 24px 40px; text-align: center; border-radius: 0 0 32px 32px; }
+.landing-hero h1 { margin: 18px 0 8px; font-size: 34px; font-weight: 600; letter-spacing: -0.5px; }
+.landing-hero p { margin: 0; font-size: 17px; color: #2f4a52; }
+.landing-cards { display: inline-flex; }
+.landing-cards span { width: 46px; height: 64px; border-radius: 9px; background: var(--surface); display: grid; place-items: center;
+  font-size: 26px; color: var(--text); box-shadow: 0 3px 10px rgba(20, 35, 40, 0.15); margin: 0 -6px; }
+.landing-cards span:nth-child(1) { transform: rotate(-14deg) translateY(6px); }
+.landing-cards span:nth-child(2) { transform: rotate(-5deg); }
+.landing-cards span:nth-child(3) { transform: rotate(5deg); }
+.landing-cards span:nth-child(4) { transform: rotate(14deg) translateY(6px); }
+.landing-cards .red { color: var(--ko); }
+.landing-body { padding: 28px 20px calc(28px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 22px; }
+.landing-features { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
+.landing-features li { display: grid; grid-template-columns: 44px 1fr; gap: 12px; align-items: center; font-size: 15px; line-height: 1.4; }
+.landing-icon { width: 44px; height: 44px; border-radius: 14px; background: var(--cream); color: #7a5b00; display: grid; place-items: center; }
+.btn-google { background: var(--surface); color: var(--text); border: 1.5px solid var(--chip-line);
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px; }
+
+/* ---------- demandes d'accès (admin) ---------- */
+.req-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line); }
+.req-row .lb-sub { display: block; }
+.req-actions { display: flex; gap: 6px; }
+.req-actions .btn { min-height: 38px; padding: 0 14px; font-size: 14.5px; }

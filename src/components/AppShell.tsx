@@ -3,6 +3,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, type ReactNode } from 'react';
 import { SessionProvider, useSession } from '@/lib/session';
 import { BottomNav } from './BottomNav';
+import { PendingAccess } from './PendingAccess';
 
 function Gate({ children }: { children: ReactNode }) {
   const { ready, uid, me } = useSession();
@@ -19,6 +20,8 @@ function Gate({ children }: { children: ReactNode }) {
 
   if (!ready) return null;
   if ((!uid || !me) && !isLogin) return null;
+  // compte pas encore accepté par l'admin : il ne voit que l'écran d'attente
+  if (me && me.status !== 'accepte' && !isLogin) return <PendingAccess />;
   return (
     <>
       {children}

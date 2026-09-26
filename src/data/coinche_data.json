@@ -8,7 +8,9 @@
       "games_played": 2,
       "games_won": 1,
       "games_lost": 1,
-      "created_at": "2026-07-15T10:00:00Z"
+      "created_at": "2026-07-15T10:00:00Z",
+      "status": "accepte",
+      "is_admin": true
     },
     {
       "id": "6a6e3885-6a3b-47e4-b9c3-aec1a94e7fd5",
@@ -17,7 +19,8 @@
       "games_played": 1,
       "games_won": 1,
       "games_lost": 0,
-      "created_at": "2026-07-15T10:00:00Z"
+      "created_at": "2026-07-15T10:00:00Z",
+      "status": "accepte"
     },
     {
       "id": "396c2136-e04f-4e17-a882-e3cb1b46a40e",
@@ -26,7 +29,8 @@
       "games_played": 1,
       "games_won": 0,
       "games_lost": 1,
-      "created_at": "2026-07-15T10:00:00Z"
+      "created_at": "2026-07-15T10:00:00Z",
+      "status": "accepte"
     },
     {
       "id": "dd8f73d0-295d-40e4-a59a-9ed4c86d1f48",
@@ -35,7 +39,8 @@
       "games_played": 1,
       "games_won": 0,
       "games_lost": 1,
-      "created_at": "2026-07-15T10:00:00Z"
+      "created_at": "2026-07-15T10:00:00Z",
+      "status": "accepte"
     },
     {
       "id": "2e6223c8-dc22-41fb-916d-47a3dcdcca82",
@@ -44,7 +49,8 @@
       "games_played": 1,
       "games_won": 1,
       "games_lost": 0,
-      "created_at": "2026-07-15T10:00:00Z"
+      "created_at": "2026-07-15T10:00:00Z",
+      "status": "accepte"
     },
     {
       "id": "f12bb374-5d94-4f6f-89c6-9cf6611e23a6",
@@ -53,7 +59,8 @@
       "games_played": 1,
       "games_won": 1,
       "games_lost": 0,
-      "created_at": "2026-07-15T10:00:00Z"
+      "created_at": "2026-07-15T10:00:00Z",
+      "status": "accepte"
     },
     {
       "id": "382e94bf-3999-42bb-af58-0661352efd6f",
@@ -62,7 +69,8 @@
       "games_played": 1,
       "games_won": 0,
       "games_lost": 1,
-      "created_at": "2026-07-15T10:00:00Z"
+      "created_at": "2026-07-15T10:00:00Z",
+      "status": "accepte"
     },
     {
       "id": "ebc84c9c-b36f-4cc3-85e9-ab31e14a7471",
@@ -71,7 +79,8 @@
       "games_played": 0,
       "games_won": 0,
       "games_lost": 0,
-      "created_at": "2026-07-15T10:00:00Z"
+      "created_at": "2026-07-15T10:00:00Z",
+      "status": "accepte"
     },
     {
       "id": "131cb6ef-24b1-4b82-aac4-b041727c0807",
@@ -80,7 +89,8 @@
       "games_played": 0,
       "games_won": 0,
       "games_lost": 0,
-      "created_at": "2026-07-15T10:00:00Z"
+      "created_at": "2026-07-15T10:00:00Z",
+      "status": "accepte"
     },
     {
       "id": "9ae4395c-3595-4f0e-9622-d82e53c0daad",
@@ -89,7 +99,18 @@
       "games_played": 0,
       "games_won": 0,
       "games_lost": 0,
-      "created_at": "2026-07-15T10:00:00Z"
+      "created_at": "2026-07-15T10:00:00Z",
+      "status": "accepte"
+    },
+    {
+      "id": "5b0e8a1f-3c2d-4e6f-9a7b-1c2d3e4f5a6b",
+      "display_name": "Lucas",
+      "elo": 1000,
+      "games_played": 0,
+      "games_won": 0,
+      "games_lost": 0,
+      "created_at": "2026-09-20T10:00:00Z",
+      "status": "en_attente"
     }
   ],
   "games": [
@@ -554,6 +575,12 @@
       "elo_before": null,
       "elo_delta": null,
       "elo_after": null
+    }
+  ],
+  "profile_emails": [
+    {
+      "id": "5b0e8a1f-3c2d-4e6f-9a7b-1c2d3e4f5a6b",
+      "email": "lucas.martin@gmail.com"
     }
   ]
 }

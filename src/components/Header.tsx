@@ -49,7 +49,7 @@ export function Header({ title, back, onBack, right, extra, alignLeft }: Props) 
                 {DATA_SOURCE === 'mock' && <span className="mode-tag">Mode local</span>}
               </div>
               <div className="sep" />
-              <button onClick={() => { setOpen(false); signOut(); router.push('/login'); }}>
+              <button onClick={async () => { setOpen(false); await signOut(); router.push('/login'); }}>
                 {DATA_SOURCE === 'mock' ? 'Changer d’utilisateur' : 'Se déconnecter'}
               </button>
               {DATA_SOURCE === 'mock' && (

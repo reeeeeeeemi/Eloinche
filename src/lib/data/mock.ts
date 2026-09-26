@@ -11,11 +11,12 @@ import type {
   DataApi, EloPoint, Game, GamePlayer, GameWithPlayers, Profile, Round, StartGameParams, Team,
 } from '../types';
 
-interface MockDb { profiles: Profile[]; games: Game[]; game_players: GamePlayer[] }
+interface MockDb { profiles: Profile[]; games: Game[]; game_players: GamePlayer[]; profile_emails: { id: string; email: string }[] }
 
-const DB_KEY = 'coinche_mock_db_v3';
+const DB_KEY = 'coinche_mock_db_v4';
 const UID_KEY = 'coinche_mock_uid';
-export const DB_EVENT = 'coinche-db-change';
+import { DB_EVENT } from './events';
+export { DB_EVENT };
 const VALIDATION_DELAY_MS = 48 * 3600 * 1000;
 
 const clone = <T,>(x: T): T => JSON.parse(JSON.stringify(x));
@@ -40,8 +41,8 @@ function rebase(db: MockDb): MockDb {
 }
 
 function freshDb(): MockDb {
-  const { profiles, games, game_players } = seed as unknown as MockDb;
-  return rebase(clone({ profiles, games, game_players }));
+  const { profiles, games, game_players, profile_emails } = seed as unknown as MockDb;
+  return rebase(clone({ profiles, games, game_players, profile_emails }));
 }
 
 function load(): MockDb {
@@ -83,13 +84,19 @@ export function setCurrentUid(uid: string | null) {
   if (uid) localStorage.setItem(UID_KEY, uid); else localStorage.removeItem(UID_KEY);
   window.dispatchEvent(new Event(DB_EVENT));
 }
+/** ≈ require_accepted() : connecté ET accepté par l'admin. */
 function requireUid(): string {
   const uid = getCurrentUid();
   if (!uid) throw new Error('non authentifié');
+  if (load().profiles.find(p => p.id === uid)?.status !== 'accepte') throw new Error('compte en attente de validation');
   return uid;
 }
+function requireAdmin() {
+  const uid = requireUid();
+  if (!load().profiles.find(p => p.id === uid)?.is_admin) throw new Error('réservé à l’admin');
+}
 
-/** Simule l'inscription (magic link + trigger handle_new_user). */
+/** Simule l'inscription (connexion + trigger handle_new_user) : le compte arrive en attente. */
 export async function mockSignUp(displayName: string): Promise<string> {
   const name = displayName.trim();
   if (!name) throw new Error('Indique un nom');
@@ -99,17 +106,24 @@ export async function mockSignUp(displayName: string): Promise<string> {
   const id = uuid();
   db.profiles.push({
     id, display_name: name, elo: BASE_ELO, games_played: 0, games_won: 0, games_lost: 0,
-    created_at: new Date().toISOString(),
+    created_at: new Date().toISOString(), status: 'en_attente',
   });
+  db.profile_emails.push({ id, email: `${name.toLowerCase().replace(/\s+/g, '.')}@exemple.fr` });
   persist(db);
   setCurrentUid(id);
   return id;
+}
+
+/** Mode test : tous les comptes, y compris en attente / refusés (pour se connecter à leur place). */
+export async function mockAllProfiles(): Promise<Profile[]> {
+  return clone(read().profiles);
 }
 
 export function resetMockDb() {
   localStorage.removeItem(DB_KEY);
   localStorage.removeItem('coinche_mock_db_v1');
   localStorage.removeItem('coinche_mock_db_v2');
+  localStorage.removeItem('coinche_mock_db_v3');
   localStorage.removeItem('coinche_current_game');
   localStorage.removeItem('coinche_current_games');
   load();
@@ -193,7 +207,7 @@ function validateIfOpponentConfirmed(db: MockDb, g: Game) {
 // ---------- API ----------
 export const mockApi: DataApi = {
   async getProfiles() {
-    return clone(read().profiles).sort((a, b) => b.elo - a.elo);
+    return clone(read().profiles.filter(p => p.status === 'accepte')).sort((a, b) => b.elo - a.elo);
   },
   async getProfile(id) {
     return clone(read().profiles.find(p => p.id === id) ?? null);
@@ -227,6 +241,8 @@ export const mockApi: DataApi = {
     if (new Set(seats).size !== 4) throw new Error('un joueur est en double');
     if (seats[0] !== uid) throw new Error('le créateur doit participer à la partie');
     const db = read();
+    if (!seats.every(id => db.profiles.find(p => p.id === id)?.status === 'accepte'))
+      throw new Error('un des joueurs n’a pas de compte validé');
     const id = uuid();
     db.games.push({
       id, created_by: uid, created_at: new Date().toISOString(), target,
@@ -280,6 +296,28 @@ export const mockApi: DataApi = {
     db.game_players.filter(x => x.game_id === gameId && (x.profile_id === uid || x.profile_id === g.created_by))
       .forEach(x => { x.confirmed = true; });
     validateIfOpponentConfirmed(db, g);
+    persist(db);
+  },
+
+  // ≈ list_join_requests (admin)
+  async listJoinRequests() {
+    requireAdmin();
+    const db = read();
+    return db.profiles.filter(p => p.status !== 'accepte')
+      .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
+      .map(p => ({
+        id: p.id, display_name: p.display_name, created_at: p.created_at,
+        status: p.status as 'en_attente' | 'refuse',
+        email: db.profile_emails.find(e => e.id === p.id)?.email ?? null,
+      }));
+  },
+
+  // ≈ decide_join_request (admin)
+  async decideJoinRequest(profileId, accept) {
+    requireAdmin();
+    const db = read();
+    const p = db.profiles.find(x => x.id === profileId);
+    if (p && !p.is_admin) p.status = accept ? 'accepte' : 'refuse';
     persist(db);
   },
 

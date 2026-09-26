@@ -1,7 +1,8 @@
 -- =====================================================================
 --  COINCHE + ELO — schéma Supabase
---  À coller dans Supabase > SQL Editor, puis "Run".
+--  À coller dans Supabase > SQL Editor, puis "Run". Relançable sans risque (met à niveau).
 --  Prérequis : activer l'extension pg_cron (Database > Extensions).
+--  Pour repartir d'une base vide pendant la mise en place : reset.sql, puis ce script.
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
@@ -16,7 +17,21 @@ create table if not exists profiles (
   games_played  int  not null default 0,
   games_won     int  not null default 0,
   games_lost    int  not null default 0,
-  created_at    timestamptz not null default now()
+  created_at    timestamptz not null default now(),
+  -- accès validé par l'admin : en_attente -> accepte | refuse
+  status        text not null default 'en_attente' check (status in ('en_attente','accepte','refuse')),
+  is_admin      boolean not null default false
+);
+
+-- Mise à niveau d'une base créée avec une version précédente de ce script
+alter table profiles add column if not exists status text not null default 'en_attente'
+  check (status in ('en_attente','accepte','refuse'));
+alter table profiles add column if not exists is_admin boolean not null default false;
+
+-- Email de chaque compte, privé : lisible seulement par l'admin (via list_join_requests)
+create table if not exists profile_emails (
+  id     uuid primary key references profiles(id) on delete cascade,
+  email  text not null
 );
 
 -- Une partie (course aux points, ex. 2000).
@@ -41,6 +56,19 @@ create table if not exists games (
   contested_by      uuid references profiles(id)        -- contestataire (validée si les 3 autres confirment)
 );
 
+-- Mise à niveau d'une base créée avec une version précédente de ce script
+alter table games add column if not exists seats        uuid[];
+alter table games add column if not exists first_dealer int;
+alter table games add column if not exists dealer_skips int not null default 0;
+alter table games add column if not exists contested_by uuid references profiles(id);
+alter table games alter column validate_deadline drop not null;
+alter table games alter column score_a set default 0;
+alter table games alter column score_b set default 0;
+alter table games drop constraint if exists games_status_check;
+alter table games add constraint games_status_check
+  check (status in ('en_cours','en_attente','validee','contestee'));
+drop table if exists allowed_emails;   -- ancienne liste d'emails autorisés (remplacée par la validation admin)
+
 -- Les 4 joueurs d'une partie
 create table if not exists game_players (
   game_id     uuid not null references games(id) on delete cascade,
@@ -59,14 +87,46 @@ create index if not exists idx_gp_profile on game_players(profile_id);
 create unique index if not exists uniq_profiles_name on profiles (lower(display_name));
 
 -- ---------------------------------------------------------------------
--- 2) CRÉATION AUTO DU PROFIL À L'INSCRIPTION
+-- 2) INSCRIPTION : COMPTE EN ATTENTE, VALIDÉ PAR L'ADMIN
 -- ---------------------------------------------------------------------
+-- N'importe qui peut se connecter avec Google, mais son compte reste « en_attente » (il ne voit
+-- et ne peut rien faire) tant que l'admin ne l'a pas accepté. 1 personne = 1 compte : l'admin
+-- refuse les doublons. Le TOUT PREMIER compte créé devient admin, accepté d'office.
+-- Nom affiché = prénom saisi à l'inscription, ou prénom du compte Google (nom complet si déjà pris).
+-- Non modifiable ensuite.
 create or replace function handle_new_user()
 returns trigger language plpgsql security definer set search_path=public,pg_temp as $$
+declare
+  v_full  text := coalesce(nullif(trim(new.raw_user_meta_data->>'display_name'), ''),  -- saisi à l'inscription
+                           nullif(trim(new.raw_user_meta_data->>'full_name'), ''),      -- compte Google
+                           nullif(trim(new.raw_user_meta_data->>'name'), ''),
+                           split_part(new.email, '@', 1));
+  v_name  text := split_part(v_full, ' ', 1);
+  v_first boolean := not exists (select 1 from public.profiles);
 begin
-  insert into public.profiles(id, display_name)
-  values (new.id, coalesce(new.raw_user_meta_data->>'display_name', split_part(new.email,'@',1)));
+  if exists (select 1 from public.profiles where lower(display_name) = lower(v_name)) then
+    v_name := v_full;
+  end if;
+  insert into public.profiles(id, display_name, status, is_admin)
+  values (new.id, v_name, case when v_first then 'accepte' else 'en_attente' end, v_first);
+  insert into public.profile_emails(id, email) values (new.id, lower(new.email));
   return new;
+end $$;
+
+-- Le joueur connecté est-il accepté / admin ? (utilisé par les RLS et les fonctions)
+create or replace function is_accepted()
+returns boolean language sql stable security definer set search_path=public,pg_temp as $$
+  select exists (select 1 from profiles where id = auth.uid() and status = 'accepte');
+$$;
+create or replace function is_admin()
+returns boolean language sql stable security definer set search_path=public,pg_temp as $$
+  select exists (select 1 from profiles where id = auth.uid() and status = 'accepte' and is_admin);
+$$;
+create or replace function require_accepted()
+returns void language plpgsql stable security definer set search_path=public,pg_temp as $$
+begin
+  if auth.uid() is null then raise exception 'non authentifié'; end if;
+  if not is_accepted() then raise exception 'compte en attente de validation'; end if;
 end $$;
 
 drop trigger if exists on_auth_user_created on auth.users;
@@ -166,8 +226,11 @@ declare
   v_uid uuid := auth.uid();
   v_game uuid;
 begin
-  if v_uid is null then raise exception 'non authentifié'; end if;
+  perform require_accepted();
   if array_length(p_seats,1) <> 4 then raise exception 'il faut 4 joueurs'; end if;
+  if (select count(*) from profiles where id = any(p_seats) and status = 'accepte') <> 4 then
+    raise exception 'un des joueurs n''a pas de compte validé';
+  end if;
   if (select count(distinct x) from unnest(p_seats) x) <> 4 then
     raise exception 'un joueur est en double';
   end if;
@@ -190,7 +253,7 @@ create or replace function lock_ongoing_game(p_game_id uuid)
 returns games language plpgsql security definer set search_path=public,pg_temp as $$
 declare g games;
 begin
-  if auth.uid() is null then raise exception 'non authentifié'; end if;
+  perform require_accepted();
   select * into g from games where id = p_game_id for update;
   if not found then raise exception 'partie introuvable'; end if;
   if g.status <> 'en_cours' then raise exception 'la partie n''est plus en cours'; end if;
@@ -289,7 +352,7 @@ declare
   v_uid uuid := auth.uid();
   v_status text; v_creator uuid; v_contester uuid; v_creator_team char(1); v_opp boolean;
 begin
-  if v_uid is null then raise exception 'non authentifié'; end if;
+  perform require_accepted();
   select status, created_by, contested_by into v_status, v_creator, v_contester from games where id = p_game_id for update;
   if not found then raise exception 'partie introuvable'; end if;
   if v_status not in ('en_attente','contestee') then raise exception 'partie non modifiable'; end if;
@@ -323,7 +386,7 @@ create or replace function contest_game(p_game_id uuid)
 returns void language plpgsql security definer set search_path=public,pg_temp as $$
 declare v_uid uuid := auth.uid();
 begin
-  if v_uid is null then raise exception 'non authentifié'; end if;
+  perform require_accepted();
   if not exists (select 1 from game_players where game_id = p_game_id and profile_id = v_uid) then
     raise exception 'tu ne participes pas à cette partie';
   end if;
@@ -339,11 +402,34 @@ create or replace function delete_game(p_game_id uuid)
 returns void language plpgsql security definer set search_path=public,pg_temp as $$
 declare v_uid uuid := auth.uid(); v_status text; v_creator uuid;
 begin
+  perform require_accepted();
   select status, created_by into v_status, v_creator from games where id = p_game_id;
   if not found then raise exception 'partie introuvable'; end if;
   if v_creator <> v_uid then raise exception 'seul le créateur peut supprimer'; end if;
   if v_status = 'validee' then raise exception 'une partie validée ne peut pas être supprimée'; end if;
   delete from games where id = p_game_id;
+end $$;
+
+-- ADMIN : demandes d'accès (comptes non acceptés), avec leur email.
+create or replace function list_join_requests()
+returns table (id uuid, display_name text, email text, status text, created_at timestamptz)
+language plpgsql stable security definer set search_path=public,pg_temp as $$
+begin
+  if not is_admin() then raise exception 'réservé à l''admin'; end if;
+  return query
+    select p.id, p.display_name, e.email, p.status, p.created_at
+      from profiles p left join profile_emails e on e.id = p.id
+     where p.status <> 'accepte'
+     order by p.created_at desc;
+end $$;
+
+-- ADMIN : accepter ou refuser une demande (un refusé peut être accepté plus tard).
+create or replace function decide_join_request(p_id uuid, p_accept boolean)
+returns void language plpgsql security definer set search_path=public,pg_temp as $$
+begin
+  if not is_admin() then raise exception 'réservé à l''admin'; end if;
+  update profiles set status = case when p_accept then 'accepte' else 'refuse' end
+   where id = p_id and not is_admin;
 end $$;
 
 -- Balayage des parties expirées (appelé par pg_cron).
@@ -359,19 +445,29 @@ end $$;
 -- ---------------------------------------------------------------------
 -- 5) DROITS D'EXÉCUTION
 -- ---------------------------------------------------------------------
-revoke execute on function validate_game(uuid)        from public;
-revoke execute on function process_expired_games()    from public;
-revoke execute on function lock_ongoing_game(uuid)   from public;
-revoke execute on function set_rounds(uuid,jsonb)    from public;
-grant  execute on function start_game(int,uuid[],int) to authenticated;
-grant  execute on function add_round(uuid,jsonb)     to authenticated;
-grant  execute on function update_round(uuid,int,jsonb) to authenticated;
-grant  execute on function delete_round(uuid,int)    to authenticated;
-grant  execute on function skip_dealer(uuid)         to authenticated;
-grant  execute on function finish_game(uuid)         to authenticated;
-grant  execute on function confirm_game(uuid)  to authenticated;
-grant  execute on function contest_game(uuid)  to authenticated;
-grant  execute on function delete_game(uuid)   to authenticated;
+-- ⚠ Supabase donne par défaut EXECUTE sur toute fonction à anon et authenticated :
+-- un simple « revoke from public » ne suffit pas, il faut retirer ces rôles explicitement.
+-- Fonctions internes : appelables uniquement depuis les autres fonctions (jamais via l'API).
+revoke execute on function validate_game(uuid)          from public, anon, authenticated;
+revoke execute on function process_expired_games()      from public, anon, authenticated;
+revoke execute on function lock_ongoing_game(uuid)      from public, anon, authenticated;
+revoke execute on function set_rounds(uuid,jsonb)       from public, anon, authenticated;
+revoke execute on function require_accepted()           from public, anon, authenticated;
+revoke execute on function handle_new_user()            from public, anon, authenticated;
+
+-- Fonctions de l'appli : joueurs connectés uniquement (chacune vérifie en plus que le compte est accepté)
+do $$
+declare f text;
+begin
+  foreach f in array array[
+    'start_game(int,uuid[],int)', 'add_round(uuid,jsonb)', 'update_round(uuid,int,jsonb)',
+    'delete_round(uuid,int)', 'skip_dealer(uuid)', 'finish_game(uuid)', 'confirm_game(uuid)',
+    'contest_game(uuid)', 'delete_game(uuid)', 'list_join_requests()', 'decide_join_request(uuid,boolean)'
+  ] loop
+    execute format('revoke execute on function %s from public, anon', f);
+    execute format('grant execute on function %s to authenticated', f);
+  end loop;
+end $$;
 
 -- ---------------------------------------------------------------------
 -- 6) RLS — lecture ouverte, écriture UNIQUEMENT via les fonctions ci-dessus
@@ -388,19 +484,40 @@ revoke update, insert, delete on profiles from authenticated;
 
 drop policy if exists "profiles_read"   on profiles;
 drop policy if exists "profiles_update" on profiles;
-create policy "profiles_read"   on profiles for select to authenticated using (true);
+-- On ne voit que les joueurs acceptés (et sa propre fiche, pour connaître son statut)
+create policy "profiles_read"   on profiles for select to authenticated
+  using (status = 'accepte' or id = auth.uid());
 
--- Parties : lecture pour tous les inscrits ; aucune écriture directe (tout passe par RPC)
+-- Emails : RLS sans aucune policy -> illisibles via l'API (seulement via list_join_requests)
+alter table profile_emails enable row level security;
+
+-- Parties : lecture pour les joueurs acceptés ; aucune écriture directe (tout passe par RPC)
 grant select on games, game_players to authenticated;
 
 drop policy if exists "games_read" on games;
 drop policy if exists "gp_read"    on game_players;
-create policy "games_read" on games        for select to authenticated using (true);
-create policy "gp_read"    on game_players  for select to authenticated using (true);
+create policy "games_read" on games        for select to authenticated using (is_accepted());
+create policy "gp_read"    on game_players  for select to authenticated using (is_accepted());
 
 -- ---------------------------------------------------------------------
--- 7) CRON — auto-validation toutes les heures
+-- 7) TEMPS RÉEL — les écrans ouverts se mettent à jour quand un autre joueur agit
+--    (les RLS ci-dessus filtrent ce que chacun reçoit)
+-- ---------------------------------------------------------------------
+do $$
+declare t text;
+begin
+  foreach t in array array['games', 'game_players', 'profiles'] loop
+    begin
+      execute format('alter publication supabase_realtime add table %I', t);
+    exception when duplicate_object or undefined_object then null;  -- déjà ajoutée / hors Supabase
+    end;
+  end loop;
+end $$;
+
+-- ---------------------------------------------------------------------
+-- 8) CRON — auto-validation toutes les heures
 --    (activer pg_cron dans Database > Extensions AVANT de lancer ceci)
 -- ---------------------------------------------------------------------
+-- À lancer UNE fois, après avoir activé pg_cron :
 -- select cron.schedule('valider-parties-expirees', '0 * * * *',
 --   $$ select process_expired_games(); $$);
