@@ -5,7 +5,8 @@ import { AppShell } from '@/components/AppShell';
 export const metadata: Metadata = {
   title: 'Coinche CDM',
   description: 'Les parties de coinche du CDM, avec classement Elo',
-  icons: { icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🃏</text></svg>' },
+  // icônes : src/app/icon.svg (onglet) et src/app/apple-icon.png (écran d'accueil iPhone), détectées par Next
+  appleWebApp: { capable: true, title: 'Coinche', statusBarStyle: 'default' },
 };
 
 export const viewport: Viewport = {
