@@ -91,6 +91,11 @@ function read(): MockDb {
 }
 
 // ---------- session simulée ----------
+/** Email de test d'un joueur local. */
+export function mockEmailOf(uid: string): string | null {
+  return load().profile_emails.find(e => e.id === uid)?.email ?? null;
+}
+
 export function getCurrentUid(): string | null {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem(UID_KEY);

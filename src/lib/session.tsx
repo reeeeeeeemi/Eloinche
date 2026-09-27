@@ -1,7 +1,7 @@
 'use client';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { DATA_SOURCE, DB_EVENT, api } from './data';
-import { getCurrentUid, setCurrentUid } from './data/mock';
+import { getCurrentUid, mockEmailOf, setCurrentUid } from './data/mock';
 import { subscribeRealtime } from './data/supabase';
 import { disablePush } from './push';
 import { supabase } from './supabaseClient';
@@ -11,6 +11,8 @@ interface Session {
   ready: boolean;
   uid: string | null;
   me: Profile | null;
+  /** Email du compte connecté (affiché dans le menu, pour le donner à qui veut t'inviter). */
+  email: string | null;
   /** Mode local : se connecter à la place d'un joueur de test. */
   signInAs: (uid: string) => void;
   signOut: () => Promise<void>;
@@ -20,7 +22,7 @@ interface Session {
 }
 
 const Ctx = createContext<Session>({
-  ready: false, uid: null, me: null,
+  ready: false, uid: null, me: null, email: null,
   signInAs: () => {}, signOut: async () => {}, signIn: async () => {}, signUp: async () => {},
 });
 
@@ -39,6 +41,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [uid, setUid] = useState<string | null>(null);
   const [me, setMe] = useState<Profile | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -55,7 +58,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     };
 
     if (DATA_SOURCE === 'mock') {
-      const sync = () => load(getCurrentUid());
+      const sync = () => { const u = getCurrentUid(); setEmail(u ? mockEmailOf(u) : null); load(u); };
       sync();
       window.addEventListener(DB_EVENT, sync);
       return () => { alive = false; window.removeEventListener(DB_EVENT, sync); };
@@ -64,9 +67,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     // Supabase : session persistée dans le navigateur + temps réel
     subscribeRealtime();
     let current: string | null = null;
-    supabase().auth.getSession().then(({ data }) => { current = data.session?.user.id ?? null; load(current); });
+    supabase().auth.getSession().then(({ data }) => {
+      current = data.session?.user.id ?? null; setEmail(data.session?.user.email ?? null); load(current);
+    });
     const { data: sub } = supabase().auth.onAuthStateChange((_evt, session) => {
-      current = session?.user.id ?? null;
+      current = session?.user.id ?? null; setEmail(session?.user.email ?? null);
       load(current);
     });
     // statut du compte (ex. accepté par l'admin) mis à jour en direct
@@ -76,7 +81,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value: Session = {
-    ready, uid, me,
+    ready, uid, me, email,
     signInAs: id => setCurrentUid(id),
     signOut: async () => {
       if (DATA_SOURCE === 'mock') setCurrentUid(null);

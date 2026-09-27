@@ -133,6 +133,7 @@ function GroupCard({ g }: { g: Group }) {
           placeholder="Email du compte à inviter" aria-label={`Inviter dans ${g.name}`} />
         <button className="btn btn-primary" disabled={!email.includes('@')}>Inviter</button>
       </form>
+      <p className="small muted" style={{ margin: '8px 0 0' }}>Ton pote retrouve l’email de son compte dans le menu ⋮ en haut à droite.</p>
       {DATA_SOURCE === 'mock' && (
         <p className="small muted" style={{ margin: '8px 0 0' }}>Mode local : l’email d’un joueur de test est prénom@exemple.fr (ex. ines@exemple.fr).</p>
       )}

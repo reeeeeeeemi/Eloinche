@@ -20,7 +20,13 @@ interface Props {
 export function Header({ title, back, onBack, right, extra, alignLeft }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const { me, signOut } = useSession();
+  const { me, email, signOut } = useSession();
+  const [copied, setCopied] = useState(false);
+
+  async function copyEmail() {
+    try { await navigator.clipboard.writeText(email!); setCopied(true); setTimeout(() => setCopied(false), 1500); }
+    catch { /* presse-papiers refusé : l'email reste sélectionnable */ }
+  }
 
   return (
     <header className={`header ${alignLeft ? 'left' : ''}`}>
@@ -46,8 +52,12 @@ export function Header({ title, back, onBack, right, extra, alignLeft }: Props) 
             <div className="menu" role="menu">
               <div style={{ padding: '10px 14px 6px' }}>
                 <div style={{ fontWeight: 600 }}>{me?.display_name}</div>
+                {email && <div className="small muted menu-email">{email}</div>}
                 {DATA_SOURCE === 'mock' && <span className="mode-tag">Mode local</span>}
               </div>
+              {email && (
+                <button onClick={copyEmail}>{copied ? 'Email copié' : 'Copier mon email'}</button>
+              )}
               <div className="sep" />
               <button onClick={async () => { setOpen(false); await signOut(); router.push('/login'); }}>
                 {DATA_SOURCE === 'mock' ? 'Changer d’utilisateur' : 'Se déconnecter'}

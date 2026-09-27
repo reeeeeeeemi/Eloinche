@@ -241,6 +241,7 @@ table.stats td:first-child, table.stats th:first-child { text-align: left; }
 .menu button, .menu a { display: block; width: 100%; text-align: left; border: none; background: none;
   padding: 12px 14px; border-radius: 10px; font-size: 15.5px; }
 .menu button:hover, .menu a:hover { background: var(--mint-soft); }
+.menu .menu-email { user-select: all; word-break: break-all; margin-top: 2px; }
 .menu .sep { height: 1px; background: var(--line); margin: 4px 8px; }
 .mode-tag { display: inline-block; font-size: 12px; padding: 3px 10px; border-radius: 10px; background: var(--cream); color: #7a5b00; }
 
