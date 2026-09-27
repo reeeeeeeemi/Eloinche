@@ -12,6 +12,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  // pas de zoom (pincer, double-toucher, ni zoom auto d'iOS sur les champs) : l'appli se comporte comme une appli native
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: 'cover',
   themeColor: '#f1f6f5',
 };
