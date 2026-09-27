@@ -135,6 +135,154 @@ create trigger on_auth_user_created
   for each row execute function handle_new_user();
 
 -- ---------------------------------------------------------------------
+-- 2 bis) NOTIFICATIONS PUSH
+--    La base envoie (via pg_net) les notifications à /api/push sur Vercel, qui les pousse aux appareils.
+--    Rien n'est envoyé tant que app_settings n'est pas rempli (voir README) : l'appli marche sans.
+-- ---------------------------------------------------------------------
+create extension if not exists pg_net;
+
+-- Un appareil abonné (le même joueur peut en avoir plusieurs : téléphone, ordi…)
+create table if not exists push_subscriptions (
+  endpoint    text primary key,
+  profile_id  uuid not null references profiles(id) on delete cascade,
+  p256dh      text not null,
+  auth        text not null,
+  created_at  timestamptz not null default now()
+);
+alter table push_subscriptions enable row level security;   -- aucune policy : accès via les fonctions seulement
+
+-- Réglages privés (adresse de /api/push et secret partagé avec Vercel). RLS sans policy : illisible via l'API.
+create table if not exists app_settings (
+  key    text primary key,
+  value  text not null
+);
+alter table app_settings enable row level security;
+
+create or replace function save_push_subscription(p_endpoint text, p_p256dh text, p_auth text)
+returns void language plpgsql security definer set search_path=public,pg_temp as $$
+begin
+  perform require_accepted();
+  insert into push_subscriptions(endpoint, profile_id, p256dh, auth)
+  values (p_endpoint, auth.uid(), p_p256dh, p_auth)
+  on conflict (endpoint) do update set profile_id = auth.uid(), p256dh = excluded.p256dh, auth = excluded.auth;
+end $$;
+
+create or replace function delete_push_subscription(p_endpoint text)
+returns void language plpgsql security definer set search_path=public,pg_temp as $$
+begin
+  delete from push_subscriptions where endpoint = p_endpoint and profile_id = auth.uid();
+end $$;
+
+-- Appelée par /api/push (avec le secret) pour oublier les appareils désabonnés
+create or replace function forget_push_subscriptions(p_secret text, p_endpoints text[])
+returns void language plpgsql security definer set search_path=public,pg_temp as $$
+begin
+  if p_secret is null or p_secret is distinct from (select value from app_settings where key = 'push_secret') then
+    raise exception 'interdit';
+  end if;
+  delete from push_subscriptions where endpoint = any(p_endpoints);
+end $$;
+
+-- Envoie une notification à tous les appareils de ces joueurs. Ne fait jamais échouer l'action en cours.
+-- (pg_net n'envoie la requête qu'une fois la transaction validée.)
+create or replace function send_push(p_profiles uuid[], p_title text, p_body text, p_url text)
+returns void language plpgsql security definer set search_path=public,pg_temp as $$
+declare v_url text; v_secret text; v_subs jsonb;
+begin
+  select value into v_url    from app_settings where key = 'push_url';
+  select value into v_secret from app_settings where key = 'push_secret';
+  if v_url is null or v_secret is null then return; end if;
+  select jsonb_agg(jsonb_build_object('endpoint', endpoint, 'keys', jsonb_build_object('p256dh', p256dh, 'auth', auth)))
+    into v_subs from push_subscriptions where profile_id = any(p_profiles);
+  if v_subs is null then return; end if;
+  perform net.http_post(
+    url     := v_url,
+    body    := jsonb_build_object('subscriptions', v_subs, 'title', p_title, 'body', p_body, 'url', p_url),
+    headers := jsonb_build_object('Content-Type', 'application/json', 'x-push-secret', v_secret),
+    timeout_milliseconds := 10000);
+exception when others then
+  raise warning 'send_push : %', sqlerrm;
+end $$;
+
+-- 1 -> « 1er », 3 -> « 3e »
+create or replace function ordinal(n int)
+returns text language sql immutable set search_path=public,pg_temp as $$
+  select case when n = 1 then '1er' else n || 'e' end
+$$;
+
+-- « Rémi/Yugs 2010 – 1500 Mike/Quentin »
+create or replace function game_label(p_game_id uuid)
+returns text language sql stable security definer set search_path=public,pg_temp as $$
+  select (select string_agg(p.display_name, '/' order by p.display_name)
+            from game_players gp join profiles p on p.id = gp.profile_id
+           where gp.game_id = g.id and gp.team = 'A')
+         || ' ' || g.score_a || ' – ' || g.score_b || ' ' ||
+         (select string_agg(p.display_name, '/' order by p.display_name)
+            from game_players gp join profiles p on p.id = gp.profile_id
+           where gp.game_id = g.id and gp.team = 'B')
+    from games g where g.id = p_game_id
+$$;
+
+-- Prévient ceux dont la confirmation est attendue : les adversaires du créateur (partie en attente),
+-- ou les 3 autres joueurs (partie contestée).
+create or replace function notify_to_validate(p_game_id uuid)
+returns void language plpgsql security definer set search_path=public,pg_temp as $$
+declare g games; v_creator_team char(1); v_ids uuid[]; v_who text;
+begin
+  select * into g from games where id = p_game_id;
+  if g.status = 'en_attente' then
+    select team into v_creator_team from game_players where game_id = p_game_id and profile_id = g.created_by;
+    select array_agg(profile_id) into v_ids from game_players
+     where game_id = p_game_id and team <> v_creator_team and not confirmed;
+    select display_name into v_who from profiles where id = g.created_by;
+    perform send_push(v_ids, 'Partie à valider',
+      v_who || ' a enregistré ' || game_label(p_game_id) || '. Confirme ou conteste.', '/historique/' || p_game_id);
+  elsif g.status = 'contestee' then
+    select array_agg(profile_id) into v_ids from game_players
+     where game_id = p_game_id and profile_id <> g.contested_by and not confirmed;
+    select display_name into v_who from profiles where id = g.contested_by;
+    perform send_push(v_ids, 'Partie contestée',
+      v_who || ' conteste ' || game_label(p_game_id) || '. Elle compte quand même si les 3 autres confirment.',
+      '/historique/' || p_game_id);
+  end if;
+end $$;
+
+-- Après validation : les 4 joueurs reçoivent le résultat (et leur nouvelle place),
+-- les autres joueurs classés sont prévenus s'ils gagnent ou perdent des places.
+-- p_before : { profile_id: rang } avant la partie.
+create or replace function notify_validated(p_game_id uuid, p_before jsonb)
+returns void language plpgsql security definer set search_path=public,pg_temp as $$
+declare
+  r record; v_label text := game_label(p_game_id); v_winner char(1); v_gap int; v_places text; v_move text;
+begin
+  select winner into v_winner from games where id = p_game_id;
+  for r in
+    select a.id, a.rk, (p_before->>a.id::text)::int as before_rk, gp.team, gp.elo_delta
+      from (select id, rank() over (order by elo desc)::int as rk
+              from profiles where status = 'accepte' and games_played > 0) a
+      left join game_players gp on gp.profile_id = a.id and gp.game_id = p_game_id
+  loop
+    v_gap    := abs(coalesce(r.before_rk, r.rk) - r.rk);
+    v_places := v_gap || case when v_gap > 1 then ' places' else ' place' end;
+    v_move   := case when r.before_rk is null then 'Tu entres au classement : ' || ordinal(r.rk) || '.'
+                     when r.rk < r.before_rk then 'Tu passes ' || ordinal(r.rk) || ' (+' || v_places || ').'
+                     when r.rk > r.before_rk then 'Tu passes ' || ordinal(r.rk) || ' (−' || v_places || ').'
+                end;
+    if r.team is not null then
+      perform send_push(array[r.id],
+        case when r.team = v_winner then 'Victoire validée : ' else 'Défaite validée : ' end
+          || case when r.elo_delta > 0 then '+' || r.elo_delta when r.elo_delta < 0 then '−' || abs(r.elo_delta) else '0' end
+          || ' Elo',
+        v_label || '.' || coalesce(' ' || v_move, ''), '/historique/' || p_game_id);
+    elsif r.before_rk is not null and r.rk <> r.before_rk then
+      perform send_push(array[r.id],
+        case when r.rk < r.before_rk then 'Tu gagnes ' else 'Tu perds ' end || v_places,
+        'Tu es maintenant ' || ordinal(r.rk) || ' du classement.', '/');
+    end if;
+  end loop;
+end $$;
+
+-- ---------------------------------------------------------------------
 -- 3) VALIDATION + ELO (margin-based) — cœur serveur
 --    Jamais appelable directement par un utilisateur.
 -- ---------------------------------------------------------------------
@@ -146,6 +294,7 @@ declare
   s_win int; s_lose int; frac numeric; mult numeric; keff numeric; ew numeric;
   sa int; delta_a int; delta_b int;
   t char(1); pids uuid[]; b1 int; b2 int; d int; steps int; bonus int;
+  v_rank_before jsonb;
 begin
   select * into g from games where id = p_game_id for update;
   if not found then raise exception 'partie introuvable'; end if;
@@ -202,6 +351,11 @@ begin
     from profiles p
    where gp.profile_id = p.id and gp.game_id = p_game_id;
 
+  -- Classement avant la partie, pour prévenir ceux qui gagnent / perdent des places
+  select coalesce(jsonb_object_agg(id, rk), '{}'::jsonb) into v_rank_before
+    from (select id, rank() over (order by elo desc) as rk
+            from profiles where status = 'accepte' and games_played > 0) x;
+
   -- Applique aux profils
   update profiles p
      set elo          = p.elo + gp.elo_delta,
@@ -212,6 +366,7 @@ begin
    where gp.profile_id = p.id and gp.game_id = p_game_id;
 
   update games set status = 'validee', validated_at = now() where id = p_game_id;
+  perform notify_validated(p_game_id, v_rank_before);
 end $$;
 
 -- ---------------------------------------------------------------------
@@ -365,6 +520,7 @@ begin
               where game_id = p_game_id and confirmed and team <> v_creator_team) then
     perform validate_game(p_game_id);
   end if;
+  perform notify_to_validate(p_game_id);   -- rien si elle vient d'être validée
 end $$;
 
 -- Confirmer une partie. Si un ADVERSAIRE du créateur confirme -> validation immédiate.
@@ -417,6 +573,7 @@ begin
   end if;
   update games set status = 'contestee', contested_by = v_uid
    where id = p_game_id and status = 'en_attente';
+  if found then perform notify_to_validate(p_game_id); end if;
 end $$;
 
 -- Supprimer / abandonner une partie (créateur seulement, tant qu'elle n'est pas validée).
@@ -477,6 +634,13 @@ revoke execute on function set_rounds(uuid,jsonb)       from public, anon, authe
 revoke execute on function perdant_croix(jsonb)         from public, anon, authenticated;
 revoke execute on function game_finished(games)         from public, anon, authenticated;
 revoke execute on function require_accepted()           from public, anon, authenticated;
+revoke execute on function send_push(uuid[],text,text,text)   from public, anon, authenticated;
+revoke execute on function notify_to_validate(uuid)           from public, anon, authenticated;
+revoke execute on function notify_validated(uuid,jsonb)       from public, anon, authenticated;
+revoke execute on function game_label(uuid)                   from public, anon, authenticated;
+revoke execute on function ordinal(int)                       from public, anon, authenticated;
+-- /api/push appelle sans session (clé publique) : le secret est vérifié dans la fonction
+grant  execute on function forget_push_subscriptions(text,text[]) to anon, authenticated;
 revoke execute on function handle_new_user()            from public, anon, authenticated;
 
 -- Fonctions de l'appli : joueurs connectés uniquement (chacune vérifie en plus que le compte est accepté)
@@ -486,7 +650,8 @@ begin
   foreach f in array array[
     'start_game(int,uuid[],int)', 'add_round(uuid,jsonb)', 'update_round(uuid,int,jsonb)',
     'delete_round(uuid,int)', 'skip_dealer(uuid)', 'finish_game(uuid)', 'confirm_game(uuid)',
-    'contest_game(uuid)', 'delete_game(uuid)', 'list_join_requests()', 'decide_join_request(uuid,boolean)'
+    'contest_game(uuid)', 'delete_game(uuid)', 'list_join_requests()', 'decide_join_request(uuid,boolean)',
+    'save_push_subscription(text,text,text)', 'delete_push_subscription(text)'
   ] loop
     execute format('revoke execute on function %s from public, anon', f);
     execute format('grant execute on function %s to authenticated', f);

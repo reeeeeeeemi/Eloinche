@@ -86,6 +86,16 @@ export const supabaseApi: DataApi = {
     return (data ?? []) as JoinRequest[];
   },
   decideJoinRequest: (profileId, accept) => rpc('decide_join_request', { p_id: profileId, p_accept: accept }),
+
+  // pas de notifyDbChange : rien d'affiché ne dépend des abonnements
+  async savePushSubscription({ endpoint, p256dh, auth }) {
+    const { error } = await supabase().rpc('save_push_subscription', { p_endpoint: endpoint, p_p256dh: p256dh, p_auth: auth });
+    fail(error);
+  },
+  async deletePushSubscription(endpoint) {
+    const { error } = await supabase().rpc('delete_push_subscription', { p_endpoint: endpoint });
+    fail(error);
+  },
 };
 
 /**

@@ -363,4 +363,8 @@ export const mockApi: DataApi = {
     db.game_players = db.game_players.filter(x => x.game_id !== gameId);
     persist(db);
   },
+
+  // Mode local : pas de serveur pour envoyer les notifications
+  async savePushSubscription() {},
+  async deletePushSubscription() {},
 };

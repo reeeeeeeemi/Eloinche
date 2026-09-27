@@ -96,6 +96,13 @@ export interface StartGameParams {
   firstDealer: number;
 }
 
+/** Abonnement aux notifications push d'un appareil (PushSubscription sérialisé). */
+export interface PushSub {
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+}
+
 // Contrat que la couche data doit respecter (mock aujourd'hui, Supabase demain)
 export interface DataApi {
   getProfiles(): Promise<Profile[]>;                     // joueurs acceptés uniquement
@@ -114,4 +121,6 @@ export interface DataApi {
   confirmGame(gameId: string): Promise<void>;
   contestGame(gameId: string): Promise<void>;
   deleteGame(gameId: string): Promise<void>;
+  savePushSubscription(sub: PushSub): Promise<void>;     // cet appareil reçoit les notifs du joueur connecté
+  deletePushSubscription(endpoint: string): Promise<void>;
 }

@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { DATA_SOURCE, DB_EVENT, api } from './data';
 import { getCurrentUid, setCurrentUid } from './data/mock';
 import { subscribeRealtime } from './data/supabase';
+import { disablePush } from './push';
 import { supabase } from './supabaseClient';
 import type { Profile } from './types';
 
@@ -73,7 +74,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     signInAs: id => setCurrentUid(id),
     signOut: async () => {
       if (DATA_SOURCE === 'mock') setCurrentUid(null);
-      else await supabase().auth.signOut();
+      else {
+        // cet appareil ne doit plus recevoir les notifs du compte qu'on quitte
+        await disablePush().catch(() => {});
+        await supabase().auth.signOut();
+      }
     },
     signIn: async (email, password) => {
       const { error } = await supabase().auth.signInWithPassword({ email: email.trim(), password });

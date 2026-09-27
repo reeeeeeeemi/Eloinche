@@ -56,4 +56,21 @@ supabase/schema.sql       schéma à exécuter plus tard dans Supabase
    `NEXT_PUBLIC_DATA_SOURCE=supabase`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (clé publique).
 4. Le **premier compte créé devient admin**. Les suivants arrivent en attente : l'admin les accepte dans son Profil.
 
+## Notifications push
+
+Les joueurs les activent dans *Profil* (sur iPhone : appli ajoutée à l'écran d'accueil, iOS 16.4+).
+Envoyées pour : une partie à valider (ou contestée), une de ses parties validée (Elo gagné/perdu, nouvelle place),
+et quand on gagne ou perd des places au classement à cause de la partie des autres.
+
+Chemin : fonction SQL `send_push` → `pg_net` → `src/app/api/push/route.ts` (Vercel) → appareils. Mise en place :
+1. Vercel : ajouter `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` et `PUSH_SECRET` (valeurs dans `.env.local`), puis redéployer.
+2. Supabase : activer l'extension **pg_net**, relancer `schema.sql`, puis une fois :
+   ```sql
+   insert into app_settings values
+     ('push_url', 'https://eloinche.vercel.app/api/push'),
+     ('push_secret', '<même valeur que PUSH_SECRET>')
+   on conflict (key) do update set value = excluded.value;
+   ```
+Sans ces réglages, rien n'est envoyé et l'appli marche normalement.
+
 `supabase/reset.sql` vide la base (à n'utiliser qu'en phase de mise en place).
