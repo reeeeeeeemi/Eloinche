@@ -1,4 +1,4 @@
-# Coinche CDM — Elo
+# Eloinche
 
 Next.js 16 (App Router) + TypeScript. En **mode local**, toutes les données viennent de
 `src/data/coinche_data.json` puis vivent dans le localStorage du navigateur. Aucun backend.

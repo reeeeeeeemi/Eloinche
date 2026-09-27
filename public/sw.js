@@ -4,7 +4,7 @@ self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
 
 self.addEventListener('push', e => {
   const d = e.data ? e.data.json() : {};
-  e.waitUntil(self.registration.showNotification(d.title || 'Coinche CDM', {
+  e.waitUntil(self.registration.showNotification(d.title || 'Eloinche', {
     body: d.body || '',
     icon: '/icon-192.png',
     badge: '/icon-192.png',

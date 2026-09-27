@@ -3,9 +3,9 @@ import type { MetadataRoute } from 'next';
 /** Installation sur l'écran d'accueil (Android / Chrome) : nom, couleurs et icônes de l'appli. */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Coinche CDM',
-    short_name: 'Coinche',
-    description: 'Le classement Elo de vos parties de coinche',
+    name: 'Eloinche',
+    short_name: 'Eloinche',
+    description: 'Vos parties de coinche entre potes, avec un classement Elo par groupe',
     start_url: '/',
     display: 'standalone',
     background_color: '#f1f6f5',

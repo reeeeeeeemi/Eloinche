@@ -21,7 +21,7 @@ export default function LoginPage() {
         <div className="landing-cards" aria-hidden>
           <span>♠</span><span className="red">♥</span><span>♣</span><span className="red">♦</span>
         </div>
-        <h1>Coinche CDM</h1>
+        <h1>Eloinche</h1>
         <p>Le classement Elo de vos parties de coinche.</p>
       </section>
 

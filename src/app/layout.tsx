@@ -3,10 +3,10 @@ import './globals.css';
 import { AppShell } from '@/components/AppShell';
 
 export const metadata: Metadata = {
-  title: 'Coinche CDM',
-  description: 'Les parties de coinche du CDM, avec classement Elo',
+  title: 'Eloinche',
+  description: 'Vos parties de coinche entre potes, avec un classement Elo par groupe',
   // icônes : src/app/icon.svg (onglet) et src/app/apple-icon.png (écran d'accueil iPhone), détectées par Next
-  appleWebApp: { capable: true, title: 'Coinche', statusBarStyle: 'default' },
+  appleWebApp: { capable: true, title: 'Eloinche', statusBarStyle: 'default' },
 };
 
 export const viewport: Viewport = {
