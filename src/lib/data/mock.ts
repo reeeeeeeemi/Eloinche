@@ -6,7 +6,7 @@
  */
 import seed from '@/data/coinche_data.json';
 import { BASE_ELO, bilanPrises, eloDeltas, splitTeamDelta } from '../elo';
-import { isFinished, totals, withFaussesDonnes } from '../scoring';
+import { isFinished, totals, winnerOf, withFaussesDonnes } from '../scoring';
 import type {
   DataApi, EloPoint, Game, GamePlayer, GameWithPlayers, Profile, Round, StartGameParams, Team,
 } from '../types';
@@ -189,7 +189,7 @@ function setRounds(g: Game, input: Round[]) {
   g.rounds = rounds;
   g.score_a = t.A;
   g.score_b = t.B;
-  g.winner = t.A >= t.B ? 'A' : 'B';
+  g.winner = winnerOf(rounds, t.A, t.B);
 }
 
 /** Validation dès qu'un joueur de l'équipe adverse au créateur a confirmé. */
@@ -260,7 +260,7 @@ export const mockApi: DataApi = {
   // ≈ add_round
   async addRound(gameId, round) {
     const { db, g } = ongoing(gameId);
-    if (isFinished(g.score_a, g.score_b, g.target)) throw new Error('la partie est déjà terminée');
+    if (isFinished(g)) throw new Error('la partie est déjà terminée');
     setRounds(g, [...g.rounds, round]);
     persist(db);
   },
@@ -290,7 +290,7 @@ export const mockApi: DataApi = {
   // ≈ finish_game : en cours -> en attente de validation (48 h)
   async finishGame(gameId) {
     const { db, g, uid } = ongoing(gameId);
-    if (!isFinished(g.score_a, g.score_b, g.target)) throw new Error('la partie n’est pas terminée');
+    if (!isFinished(g)) throw new Error('la partie n’est pas terminée');
     g.status = 'en_attente';
     g.validate_deadline = new Date(Date.now() + VALIDATION_DELAY_MS).toISOString();
     db.game_players.filter(x => x.game_id === gameId && (x.profile_id === uid || x.profile_id === g.created_by))
@@ -345,7 +345,7 @@ export const mockApi: DataApi = {
     if (!g) throw new Error('partie introuvable');
     if (!db.game_players.some(x => x.game_id === gameId && x.profile_id === uid))
       throw new Error('tu ne participes pas à cette partie');
-    if (!isFinished(g.score_a, g.score_b, g.target))
+    if (!isFinished(g))
       throw new Error('une partie ne peut être contestée qu’une fois terminée');
     if (g.status === 'en_attente') { g.status = 'contestee'; g.contested_by = uid; }
     persist(db);

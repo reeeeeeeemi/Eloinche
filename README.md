@@ -39,7 +39,7 @@ src/
   data/coinche_data.json  données de test (même forme que les tables Supabase)
   lib/
     types.ts              types = tables SQL + interface DataApi
-    scoring.ts            règles de points (capot 250, générale 500, coinche ×2/×4, belote +20)
+    scoring.ts            règles de points (162 par donne, plus de 81 pour réussir, capot 250, générale 500, coinche ×2/×4, belote +20)
     elo.ts                Elo margin-based + répartition entre partenaires selon les prises (identique à validate_game en SQL)
     table.ts              places autour de la table, équipes, donneur
     data/index.ts         ← SEUL point d'entrée des données pour le front

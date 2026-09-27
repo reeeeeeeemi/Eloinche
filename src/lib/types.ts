@@ -11,11 +11,11 @@ export interface RoundInput {
   preneur: Team;
   preneur_id?: string | null;   // joueur individuel qui a pris
   contrat: Contrat;
-  points_preneur?: number;      // points réalisés par l'équipe preneuse (/160), hors capot/générale
+  points_preneur?: number;      // points réalisés par l'équipe preneuse (/162), hors capot/générale
   atout?: Atout | null;
   coinche: Coinche;
   belote: Team | null;
-  capot?: Team | null;          // capot non annoncé réalisé sur un contrat chiffré (250 au lieu de 160)
+  capot?: Team | null;          // capot non annoncé réalisé sur un contrat chiffré (250 au lieu de 162)
   fausse_donne?: Team | null;   // manche = fausse donne de cette paire (pas de contrat joué)
   reussi?: boolean;             // saisi pour capot / générale, calculé et stocké pour les autres
 }

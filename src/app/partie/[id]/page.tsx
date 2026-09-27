@@ -4,11 +4,12 @@ import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ChartLine, List, Pencil, Plus, SkipForward, Trash2, X } from 'lucide-react';
 import { AjoutManche } from '@/components/AjoutManche';
+import { Croix } from '@/components/Croix';
 import { Header } from '@/components/Header';
 import { LineChart } from '@/components/LineChart';
 import { PrisesTable } from '@/components/PrisesTable';
 import { api } from '@/lib/data';
-import { ATOUTS, contratLabel, fausseDonneRank, isFinished, isReussi } from '@/lib/scoring';
+import { ATOUTS, CROIX_MAX, contratLabel, croix, fausseDonneRank, isFinished, isReussi, perdantCroix } from '@/lib/scoring';
 import { useSession } from '@/lib/session';
 import { dealerOf, teamA, teamB } from '@/lib/table';
 import type { Round } from '@/lib/types';
@@ -55,9 +56,11 @@ export default function PartiePage() {
   const name = (id: string) => profiles?.find(p => p.id === id)?.display_name ?? '…';
   const A = teamA(game), B = teamB(game);
   const t = { A: game.score_a, B: game.score_b };
-  const finished = isFinished(t.A, t.B, game.target);
+  const finished = isFinished(game);
   const player = game.players.some(p => p.profile_id === uid);
-  const leader = t.A >= t.B ? A : B;
+  const leader = game.winner === 'A' ? A : B;
+  const cx = croix(game.rounds);
+  const perdant = perdantCroix(game.rounds);
   const dealer = dealerOf(game);
   const manche = game.rounds.length + 1;
 
@@ -103,18 +106,24 @@ export default function PartiePage() {
           <div className="sb-team">
             {nameSlot(A[0])}
             <div className="sb-score">{t.A}</div>
+            <Croix n={cx.A} />
             {nameSlot(A[1])}
           </div>
           <div className="sb-team">
             {nameSlot(B[0])}
             <div className="sb-score">{t.B}</div>
+            <Croix n={cx.B} />
             {nameSlot(B[1])}
           </div>
         </div>
 
         {finished && (
           <div className="banner">
-            <strong>{leader.map(name).join(' et ')} gagnent {Math.max(t.A, t.B)} à {Math.min(t.A, t.B)}</strong>
+            <strong>
+              {perdant
+                ? <>{leader.map(name).join(' et ')} gagnent : {CROIX_MAX} capots non annoncés pour {labelOf(perdant)}</>
+                : <>{leader.map(name).join(' et ')} gagnent {Math.max(t.A, t.B)} à {Math.min(t.A, t.B)}</>}
+            </strong>
             <p className="small" style={{ margin: '-4px 0 14px' }}>
               La partie sera validée dès qu’un adversaire confirme, ou automatiquement dans 48 h sans contestation.
             </p>

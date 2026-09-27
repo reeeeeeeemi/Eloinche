@@ -142,6 +142,8 @@ input, select { font: inherit; color: inherit; }
 .scoreband { background: var(--mint); margin: 0 -16px; padding: 14px 12px 16px; display: grid; grid-template-columns: 1fr 1fr; }
 .sb-team { text-align: center; }
 .sb-name { font-size: 26px; display: inline-flex; align-items: center; gap: 6px; min-height: 34px; }
+.croix { color: var(--ko); font-weight: 700; letter-spacing: .15em; font-size: 14px; }
+.sb-team .croix { display: block; margin: -6px 0 6px; }
 .sb-score { font-size: 46px; font-weight: 400; line-height: 1.1; margin: 10px 0; font-variant-numeric: tabular-nums; }
 .dealer { color: #45566b; }
 .tabs { display: flex; gap: 8px; margin: 16px 0 4px; }

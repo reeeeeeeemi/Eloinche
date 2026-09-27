@@ -162,8 +162,9 @@ begin
   ea := 1.0 / (1.0 + power(10, (rb - ra) / 400.0));
 
   -- Multiplicateur d'ampleur (margin-based) : 1x (serré) -> 2x (raclée)
-  s_win  := greatest(g.score_a, g.score_b);
-  s_lose := least(g.score_a, g.score_b);
+  -- écart vu du vainqueur : 0 s'il gagne aux croix en étant derrière au score
+  s_win  := case when g.winner = 'A' then g.score_a else g.score_b end;
+  s_lose := case when g.winner = 'A' then g.score_b else g.score_a end;
   frac   := least(1.0, greatest(0.0, (s_win - s_lose)::numeric / nullif(g.target, 0)));
   sa := case when g.winner = 'A' then 1 else 0 end;
   -- bonus d'écart pondéré par la surprise : ×1 à égalité, moins pour un favori, plus pour un outsider
@@ -263,6 +264,25 @@ begin
   return g;
 end $$;
 
+-- Capots non annoncés : une petite croix par capot pour la paire qui le fait ; la première à 3 croix perd.
+-- Renvoie cette paire, ou null (identique à perdantCroix() dans src/lib/scoring.ts).
+create or replace function perdant_croix(p_rounds jsonb)
+returns char(1) language plpgsql immutable set search_path=public,pg_temp as $$
+declare r jsonb; na int := 0; nb int := 0;
+begin
+  for r in select e from jsonb_array_elements(coalesce(p_rounds, '[]'::jsonb)) with ordinality as x(e, i) order by i loop
+    if r->>'capot' = 'A' then na := na + 1; if na >= 3 then return 'A'; end if; end if;
+    if r->>'capot' = 'B' then nb := nb + 1; if nb >= 3 then return 'B'; end if; end if;
+  end loop;
+  return null;
+end $$;
+
+-- Partie terminée : objectif atteint ou 3 croix (identique à isFinished() dans src/lib/scoring.ts).
+create or replace function game_finished(g games)
+returns boolean language sql immutable set search_path=public,pg_temp as $$
+  select greatest(g.score_a, g.score_b) >= g.target or perdant_croix(g.rounds) is not null
+$$;
+
 -- Recalcule scores et vainqueur provisoire à partir des manches.
 -- Fausses donnes : la 1re d'une paire ne coûte rien, à partir de la 2e chacune donne 160 à l'autre paire
 -- (identique à withFaussesDonnes() dans src/lib/scoring.ts).
@@ -271,7 +291,7 @@ returns void language plpgsql security definer set search_path=public,pg_temp as
 declare
   r jsonb; v_out jsonb := '[]'::jsonb;
   na int := 0; nb int := 0; n int; pen int; t text;
-  a int := 0; b int := 0;
+  a int := 0; b int := 0; v_perdant char(1);
 begin
   for r in select e from jsonb_array_elements(p_rounds) with ordinality as x(e, i) order by i loop
     t := r->>'fausse_donne';
@@ -285,8 +305,10 @@ begin
     b := b + (r->>'score_b')::int;
     v_out := v_out || jsonb_build_array(r);
   end loop;
+  v_perdant := perdant_croix(v_out);
   update games set rounds = v_out, score_a = a, score_b = b,
-                   winner = case when a >= b then 'A' else 'B' end
+                   winner = case when v_perdant = 'A' then 'B' when v_perdant = 'B' then 'A'
+                                 when a >= b then 'A' else 'B' end
    where id = p_game_id;
 end $$;
 
@@ -295,7 +317,7 @@ create or replace function add_round(p_game_id uuid, p_round jsonb)
 returns void language plpgsql security definer set search_path=public,pg_temp as $$
 declare g games := lock_ongoing_game(p_game_id);
 begin
-  if greatest(g.score_a, g.score_b) >= g.target then raise exception 'la partie est déjà terminée'; end if;
+  if game_finished(g) then raise exception 'la partie est déjà terminée'; end if;
   perform set_rounds(p_game_id, g.rounds || jsonb_build_array(p_round));
 end $$;
 
@@ -330,7 +352,7 @@ create or replace function finish_game(p_game_id uuid)
 returns void language plpgsql security definer set search_path=public,pg_temp as $$
 declare g games := lock_ongoing_game(p_game_id); v_creator_team char(1);
 begin
-  if greatest(g.score_a, g.score_b) < g.target then
+  if not game_finished(g) then
     raise exception 'la partie n''est pas terminée';
   end if;
   update games set status = 'en_attente', validate_deadline = now() + interval '48 hours'
@@ -390,7 +412,7 @@ begin
   if not exists (select 1 from game_players where game_id = p_game_id and profile_id = v_uid) then
     raise exception 'tu ne participes pas à cette partie';
   end if;
-  if exists (select 1 from games where id = p_game_id and greatest(score_a, score_b) < target) then
+  if exists (select 1 from games g where g.id = p_game_id and not game_finished(g)) then
     raise exception 'une partie ne peut être contestée qu''une fois terminée';
   end if;
   update games set status = 'contestee', contested_by = v_uid
@@ -452,6 +474,8 @@ revoke execute on function validate_game(uuid)          from public, anon, authe
 revoke execute on function process_expired_games()      from public, anon, authenticated;
 revoke execute on function lock_ongoing_game(uuid)      from public, anon, authenticated;
 revoke execute on function set_rounds(uuid,jsonb)       from public, anon, authenticated;
+revoke execute on function perdant_croix(jsonb)         from public, anon, authenticated;
+revoke execute on function game_finished(games)         from public, anon, authenticated;
 revoke execute on function require_accepted()           from public, anon, authenticated;
 revoke execute on function handle_new_user()            from public, anon, authenticated;
 

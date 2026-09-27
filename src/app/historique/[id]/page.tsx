@@ -1,13 +1,14 @@
 'use client';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { Croix } from '@/components/Croix';
 import { teamNames } from '@/components/GameCard';
 import { Header } from '@/components/Header';
 import { LineChart } from '@/components/LineChart';
 import { PrisesTable } from '@/components/PrisesTable';
 import { api } from '@/lib/data';
 import { STATUS, fmtDate, signed, timeLeft } from '@/lib/format';
-import { ATOUTS, contratLabel, isFinished, isReussi } from '@/lib/scoring';
+import { ATOUTS, CROIX_MAX, contratLabel, croix, isFinished, isReussi, perdantCroix } from '@/lib/scoring';
 import { useSession } from '@/lib/session';
 import type { Team } from '@/lib/types';
 import { useData } from '@/lib/useData';
@@ -30,7 +31,9 @@ export default function GameDetailPage() {
   const creatorTeam = g.players.find(p => p.profile_id === g.created_by)?.team;
   const isCreator = g.created_by === uid;
   const pending = g.status === 'en_attente';
-  const finished = isFinished(g.score_a, g.score_b, g.target);
+  const finished = isFinished(g);
+  const cx = croix(g.rounds);
+  const perdant = perdantCroix(g.rounds);
   const st = STATUS[g.status];
   const nameOf = (pid?: string | null) => g.players.find(p => p.profile_id === pid)?.display_name ?? '';
 
@@ -46,7 +49,7 @@ export default function GameDetailPage() {
 
   const teamBlock = (t: Team) => (
     <div className={`gc-line ${g.winner === t ? 'win' : ''}`} style={{ fontSize: 20 }}>
-      <span>{teamNames(g, t)}</span>
+      <span>{teamNames(g, t)} <Croix n={cx[t]} /></span>
       <span className="gc-score">{t === 'A' ? g.score_a : g.score_b}</span>
     </div>
   );
@@ -62,6 +65,11 @@ export default function GameDetailPage() {
             <span className="gc-date">{g.target} pts</span>
           </div>
           <div className="gc-body">{teamBlock('A')}{teamBlock('B')}</div>
+          {perdant && (
+            <p className="small muted card-pad" style={{ margin: 0, paddingTop: 0 }}>
+              Perdue par {teamNames(g, perdant)} : {CROIX_MAX} capots non annoncés.
+            </p>
+          )}
         </div>
 
         {pending && (

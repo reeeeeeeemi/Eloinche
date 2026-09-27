@@ -15,7 +15,8 @@ export function eloDeltas(
   ra: number, rb: number, winner: Team, scoreA: number, scoreB: number, target: number,
 ): { A: number; B: number } {
   const ea = 1 / (1 + Math.pow(10, (rb - ra) / 400));
-  const gap = Math.abs(scoreA - scoreB);
+  // écart vu du vainqueur : 0 s'il gagne aux croix en étant derrière au score
+  const gap = Math.max(0, winner === 'A' ? scoreA - scoreB : scoreB - scoreA);
   const frac = Math.max(0, Math.min(1, target > 0 ? gap / target : 0));
   const sa = winner === 'A' ? 1 : 0;
   const ew = sa === 1 ? ea : 1 - ea; // score attendu du vainqueur (0.5 = égalité)
