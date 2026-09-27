@@ -18,21 +18,21 @@ export function Invitations() {
   }
 
   return (
-    <div className="card card-pad">
-      <h2 className="section-title" style={{ fontSize: 17 }}>Invitations ({invites.length})</h2>
+    <div className="card grp invites">
+      <h2 className="grp-name">Invitation{invites.length > 1 ? 's' : ''}</h2>
       {err && <p className="error">{err}</p>}
-      {invites.map(i => (
-        <div key={i.id} className="req-row">
-          <span>
-            <span className="lb-name">{i.group_name}</span>
-            <span className="lb-sub">Invité par {i.invited_by_name}</span>
-          </span>
-          <span className="req-actions">
-            <button className="btn btn-soft" onClick={() => respond(i.id, i.group_id, false)}>Refuser</button>
-            <button className="btn btn-primary" onClick={() => respond(i.id, i.group_id, true)}>Rejoindre</button>
-          </span>
-        </div>
-      ))}
+      <ul className="members">
+        {invites.map(i => (
+          <li key={i.id} className="member">
+            <span className="member-name" style={{ whiteSpace: 'normal' }}>
+              {i.group_name}
+              <span className="grp-meta" style={{ display: 'block' }}>de {i.invited_by_name}</span>
+            </span>
+            <button className="link-btn" style={{ color: 'var(--muted)', marginRight: 8 }} onClick={() => respond(i.id, i.group_id, false)}>Refuser</button>
+            <button className="btn-sm" style={{ height: 36 }} onClick={() => respond(i.id, i.group_id, true)}>Rejoindre</button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
