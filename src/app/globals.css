@@ -100,6 +100,11 @@ input, select { font: inherit; color: inherit; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+/* onglets de groupe de l'historique : soulignés, pour ne pas les confondre avec les filtres en dessous */
+.scope-tabs { flex-wrap: nowrap; overflow-x: auto; gap: 18px; margin: 0 -2px 12px; padding: 0 2px; border-bottom: 1px solid var(--line); scrollbar-width: none; }
+.scope-tab { flex: none; background: none; border: none; padding: 8px 0 10px; font-size: 15.5px; font-weight: 600; color: var(--muted);
+  border-bottom: 3px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+.scope-tab.on { color: var(--text); border-bottom-color: var(--teal); }
 .chip { min-height: 42px; padding: 0 16px; border-radius: 12px; border: 1.5px solid var(--chip-line);
   background: var(--chip); font-size: 16px; }
 .chip.on { background: var(--teal); border-color: var(--teal); color: #fff; }
