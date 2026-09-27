@@ -56,6 +56,16 @@ supabase/schema.sql       schéma à exécuter plus tard dans Supabase
    `NEXT_PUBLIC_DATA_SOURCE=supabase`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (clé publique).
 4. Le **premier compte créé devient admin**. Les suivants arrivent en attente : l'admin les accepte dans son Profil.
 
+## Groupes
+
+Chaque groupe a son propre classement : l'Elo et les stats sont par groupe (table `group_members`), et chaque partie
+appartient à un groupe. N'importe qui peut créer un compte puis un groupe. Pour entrer dans un groupe existant,
+il faut y être invité par un membre avec l'email de son compte, puis accepter. Si la personne n'a pas encore de compte,
+l'invitation l'attend. Seul le créateur peut retirer un membre. La mise à niveau de `schema.sql` range les joueurs et
+parties d'avant dans un groupe « CDM », avec leur Elo actuel.
+
+Mode local : Rémi + 3 comptes fictifs (Léa, Hugo, Inès), emails prénom@exemple.fr. Menu ⋮ > *Réinitialiser les données de test*.
+
 ## Notifications push
 
 Les joueurs les activent dans *Profil* (sur iPhone : appli ajoutée à l'écran d'accueil, iOS 16.4+).

@@ -1,586 +1,587 @@
 {
-  "_comment": "Mock local — même forme que Supabase. À swapper par le vrai client plus tard.",
+  "_comment": "Mode local : Rémi + 3 comptes fictifs (Léa, Hugo, Inès), deux groupes. Même forme que les tables Supabase.",
   "profiles": [
     {
       "id": "4e542fd0-9ce6-41fe-b19d-96d82f8017e9",
       "display_name": "Rémi",
-      "elo": 992,
-      "games_played": 2,
-      "games_won": 1,
-      "games_lost": 1,
-      "created_at": "2026-07-15T10:00:00Z",
+      "created_at": "2026-09-01T10:00:00.000Z",
       "status": "accepte",
       "is_admin": true
     },
     {
-      "id": "6a6e3885-6a3b-47e4-b9c3-aec1a94e7fd5",
-      "display_name": "Thomas",
-      "elo": 1022,
-      "games_played": 1,
+      "id": "1a2b3c4d-0001-4000-8000-00000000a001",
+      "display_name": "Léa",
+      "created_at": "2026-09-01T10:00:00.000Z",
+      "status": "accepte"
+    },
+    {
+      "id": "1a2b3c4d-0002-4000-8000-00000000a002",
+      "display_name": "Hugo",
+      "created_at": "2026-09-01T10:00:00.000Z",
+      "status": "accepte"
+    },
+    {
+      "id": "1a2b3c4d-0003-4000-8000-00000000a003",
+      "display_name": "Inès",
+      "created_at": "2026-09-01T10:00:00.000Z",
+      "status": "accepte"
+    }
+  ],
+  "profile_emails": [
+    {
+      "id": "4e542fd0-9ce6-41fe-b19d-96d82f8017e9",
+      "email": "remi@exemple.fr"
+    },
+    {
+      "id": "1a2b3c4d-0001-4000-8000-00000000a001",
+      "email": "lea@exemple.fr"
+    },
+    {
+      "id": "1a2b3c4d-0002-4000-8000-00000000a002",
+      "email": "hugo@exemple.fr"
+    },
+    {
+      "id": "1a2b3c4d-0003-4000-8000-00000000a003",
+      "email": "ines@exemple.fr"
+    }
+  ],
+  "groups": [
+    {
+      "id": "9c0d1e2f-0001-4000-8000-00000000b001",
+      "name": "CDM",
+      "created_by": "4e542fd0-9ce6-41fe-b19d-96d82f8017e9",
+      "created_at": "2026-09-01T10:00:00.000Z"
+    },
+    {
+      "id": "9c0d1e2f-0002-4000-8000-00000000b002",
+      "name": "Coinche du jeudi",
+      "created_by": "1a2b3c4d-0001-4000-8000-00000000a001",
+      "created_at": "2026-09-10T10:00:00.000Z"
+    }
+  ],
+  "group_members": [
+    {
+      "group_id": "9c0d1e2f-0001-4000-8000-00000000b001",
+      "profile_id": "4e542fd0-9ce6-41fe-b19d-96d82f8017e9",
+      "elo": 989,
+      "games_played": 2,
       "games_won": 1,
-      "games_lost": 0,
-      "created_at": "2026-07-15T10:00:00Z",
-      "status": "accepte"
-    },
-    {
-      "id": "396c2136-e04f-4e17-a882-e3cb1b46a40e",
-      "display_name": "Martin",
-      "elo": 978,
-      "games_played": 1,
-      "games_won": 0,
       "games_lost": 1,
-      "created_at": "2026-07-15T10:00:00Z",
-      "status": "accepte"
+      "joined_at": "2026-09-01T10:00:00.000Z"
     },
     {
-      "id": "dd8f73d0-295d-40e4-a59a-9ed4c86d1f48",
-      "display_name": "Romain",
-      "elo": 978,
-      "games_played": 1,
-      "games_won": 0,
-      "games_lost": 1,
-      "created_at": "2026-07-15T10:00:00Z",
-      "status": "accepte"
-    },
-    {
-      "id": "2e6223c8-dc22-41fb-916d-47a3dcdcca82",
-      "display_name": "Arthur",
-      "elo": 1030,
-      "games_played": 1,
+      "group_id": "9c0d1e2f-0001-4000-8000-00000000b001",
+      "profile_id": "1a2b3c4d-0001-4000-8000-00000000a001",
+      "elo": 993,
+      "games_played": 2,
       "games_won": 1,
-      "games_lost": 0,
-      "created_at": "2026-07-15T10:00:00Z",
-      "status": "accepte"
-    },
-    {
-      "id": "f12bb374-5d94-4f6f-89c6-9cf6611e23a6",
-      "display_name": "Pierre",
-      "elo": 1030,
-      "games_played": 1,
-      "games_won": 1,
-      "games_lost": 0,
-      "created_at": "2026-07-15T10:00:00Z",
-      "status": "accepte"
-    },
-    {
-      "id": "382e94bf-3999-42bb-af58-0661352efd6f",
-      "display_name": "Yugs",
-      "elo": 970,
-      "games_played": 1,
-      "games_won": 0,
       "games_lost": 1,
-      "created_at": "2026-07-15T10:00:00Z",
-      "status": "accepte"
+      "joined_at": "2026-09-01T10:00:00.000Z"
     },
     {
-      "id": "ebc84c9c-b36f-4cc3-85e9-ab31e14a7471",
-      "display_name": "Mike",
+      "group_id": "9c0d1e2f-0001-4000-8000-00000000b001",
+      "profile_id": "1a2b3c4d-0002-4000-8000-00000000a002",
+      "elo": 1007,
+      "games_played": 2,
+      "games_won": 1,
+      "games_lost": 1,
+      "joined_at": "2026-09-01T10:00:00.000Z"
+    },
+    {
+      "group_id": "9c0d1e2f-0001-4000-8000-00000000b001",
+      "profile_id": "1a2b3c4d-0003-4000-8000-00000000a003",
+      "elo": 1011,
+      "games_played": 2,
+      "games_won": 1,
+      "games_lost": 1,
+      "joined_at": "2026-09-01T10:00:00.000Z"
+    },
+    {
+      "group_id": "9c0d1e2f-0002-4000-8000-00000000b002",
+      "profile_id": "1a2b3c4d-0001-4000-8000-00000000a001",
       "elo": 1000,
       "games_played": 0,
       "games_won": 0,
       "games_lost": 0,
-      "created_at": "2026-07-15T10:00:00Z",
-      "status": "accepte"
+      "joined_at": "2026-09-10T10:00:00.000Z"
     },
     {
-      "id": "131cb6ef-24b1-4b82-aac4-b041727c0807",
-      "display_name": "Quentin",
+      "group_id": "9c0d1e2f-0002-4000-8000-00000000b002",
+      "profile_id": "1a2b3c4d-0002-4000-8000-00000000a002",
       "elo": 1000,
       "games_played": 0,
       "games_won": 0,
       "games_lost": 0,
-      "created_at": "2026-07-15T10:00:00Z",
-      "status": "accepte"
-    },
+      "joined_at": "2026-09-10T10:00:00.000Z"
+    }
+  ],
+  "group_invites": [
     {
-      "id": "9ae4395c-3595-4f0e-9622-d82e53c0daad",
-      "display_name": "Kinan",
-      "elo": 1000,
-      "games_played": 0,
-      "games_won": 0,
-      "games_lost": 0,
-      "created_at": "2026-07-15T10:00:00Z",
-      "status": "accepte"
-    },
-    {
-      "id": "5b0e8a1f-3c2d-4e6f-9a7b-1c2d3e4f5a6b",
-      "display_name": "Lucas",
-      "elo": 1000,
-      "games_played": 0,
-      "games_won": 0,
-      "games_lost": 0,
-      "created_at": "2026-09-20T10:00:00Z",
-      "status": "en_attente"
+      "id": "5e000000-0001-4000-8000-00000000d001",
+      "group_id": "9c0d1e2f-0002-4000-8000-00000000b002",
+      "email": "remi@exemple.fr",
+      "invited_by": "1a2b3c4d-0001-4000-8000-00000000a001",
+      "created_at": "2026-09-20T12:00:00.000Z"
     }
   ],
   "games": [
     {
-      "id": "eab3b3c9-990e-43a1-853c-dd4dad1a91ff",
+      "id": "7f000000-0001-4000-8000-00000000c001",
+      "group_id": "9c0d1e2f-0001-4000-8000-00000000b001",
       "created_by": "4e542fd0-9ce6-41fe-b19d-96d82f8017e9",
-      "created_at": "2026-08-03T20:30:00Z",
-      "target": 700,
-      "score_a": 810,
-      "score_b": 560,
+      "created_at": "2026-09-12T21:00:00.000Z",
+      "target": 1500,
+      "score_a": 1600,
+      "score_b": 470,
       "winner": "A",
-      "status": "validee",
-      "validate_deadline": "2026-08-05T20:30:00Z",
-      "validated_at": "2026-08-03T20:30:00Z",
-      "rounds": [
-        {
-          "preneur": "A",
-          "contrat": 90,
-          "points_preneur": 100,
-          "belote": "A",
-          "atout": "coeur",
-          "coinche": 1,
-          "reussi": true,
-          "score_a": 210,
-          "score_b": 60,
-          "preneur_id": "4e542fd0-9ce6-41fe-b19d-96d82f8017e9"
-        },
-        {
-          "preneur": "B",
-          "contrat": 110,
-          "points_preneur": 120,
-          "atout": "coeur",
-          "coinche": 1,
-          "belote": null,
-          "reussi": true,
-          "score_a": 40,
-          "score_b": 230,
-          "preneur_id": "396c2136-e04f-4e17-a882-e3cb1b46a40e"
-        },
-        {
-          "preneur": "A",
-          "contrat": 100,
-          "points_preneur": 90,
-          "reussi": false,
-          "atout": "coeur",
-          "coinche": 1,
-          "belote": null,
-          "score_a": 0,
-          "score_b": 260,
-          "preneur_id": "6a6e3885-6a3b-47e4-b9c3-aec1a94e7fd5"
-        },
-        {
-          "preneur": "B",
-          "contrat": 120,
-          "points_preneur": 80,
-          "reussi": false,
-          "atout": "coeur",
-          "coinche": 1,
-          "belote": null,
-          "score_a": 280,
-          "score_b": 0,
-          "preneur_id": "dd8f73d0-295d-40e4-a59a-9ed4c86d1f48"
-        },
-        {
-          "preneur": "A",
-          "contrat": 130,
-          "points_preneur": 150,
-          "atout": "coeur",
-          "coinche": 1,
-          "belote": null,
-          "reussi": true,
-          "score_a": 280,
-          "score_b": 10,
-          "preneur_id": "4e542fd0-9ce6-41fe-b19d-96d82f8017e9"
-        }
-      ]
-    },
-    {
-      "id": "8b9ce4a0-53a3-4d89-83dd-c3c708197813",
-      "created_by": "2e6223c8-dc22-41fb-916d-47a3dcdcca82",
-      "created_at": "2026-08-05T20:30:00Z",
-      "target": 700,
-      "score_a": 230,
-      "score_b": 810,
-      "winner": "B",
-      "status": "validee",
-      "validate_deadline": "2026-08-07T20:30:00Z",
-      "validated_at": "2026-08-05T20:30:00Z",
-      "rounds": [
-        {
-          "preneur": "B",
-          "contrat": 100,
-          "points_preneur": 130,
-          "coinche": 1,
-          "atout": "coeur",
-          "belote": null,
-          "reussi": true,
-          "score_a": 30,
-          "score_b": 230,
-          "preneur_id": "2e6223c8-dc22-41fb-916d-47a3dcdcca82"
-        },
-        {
-          "preneur": "A",
-          "contrat": 120,
-          "points_preneur": 90,
-          "reussi": false,
-          "atout": "coeur",
-          "coinche": 1,
-          "belote": null,
-          "score_a": 0,
-          "score_b": 280,
-          "preneur_id": "4e542fd0-9ce6-41fe-b19d-96d82f8017e9"
-        },
-        {
-          "preneur": "B",
-          "contrat": "capot",
-          "reussi": true,
-          "atout": "coeur",
-          "coinche": 1,
-          "belote": null,
-          "score_a": 0,
-          "score_b": 250,
-          "preneur_id": "f12bb374-5d94-4f6f-89c6-9cf6611e23a6"
-        },
-        {
-          "preneur": "A",
-          "contrat": 90,
-          "points_preneur": 110,
-          "atout": "coeur",
-          "coinche": 1,
-          "belote": null,
-          "reussi": true,
-          "score_a": 200,
-          "score_b": 50,
-          "preneur_id": "382e94bf-3999-42bb-af58-0661352efd6f"
-        }
-      ]
-    },
-    {
-      "id": "c385738f-7194-40fd-a8e3-398c40c65059",
-      "created_by": "4e542fd0-9ce6-41fe-b19d-96d82f8017e9",
-      "created_at": "2026-08-19T20:30:00Z",
-      "target": 500,
-      "score_a": 270,
-      "score_b": 570,
-      "winner": "B",
-      "status": "en_attente",
-      "validate_deadline": "2026-08-21T20:30:00Z",
-      "validated_at": null,
-      "rounds": [
-        {
-          "preneur": "A",
-          "contrat": 110,
-          "points_preneur": 120,
-          "belote": "A",
-          "atout": "coeur",
-          "coinche": 1,
-          "reussi": true,
-          "score_a": 250,
-          "score_b": 40,
-          "preneur_id": "4e542fd0-9ce6-41fe-b19d-96d82f8017e9"
-        },
-        {
-          "preneur": "B",
-          "contrat": 100,
-          "points_preneur": 140,
-          "atout": "coeur",
-          "coinche": 1,
-          "belote": null,
-          "reussi": true,
-          "score_a": 20,
-          "score_b": 240,
-          "preneur_id": "ebc84c9c-b36f-4cc3-85e9-ab31e14a7471"
-        },
-        {
-          "preneur": "A",
-          "contrat": 130,
-          "points_preneur": 90,
-          "reussi": false,
-          "atout": "coeur",
-          "coinche": 1,
-          "belote": null,
-          "score_a": 0,
-          "score_b": 290,
-          "preneur_id": "382e94bf-3999-42bb-af58-0661352efd6f"
-        }
-      ]
-    },
-    {
-      "id": "35b79f90-a2dd-45a4-afbf-509f0fd820a5",
-      "created_by": "4e542fd0-9ce6-41fe-b19d-96d82f8017e9",
-      "created_at": "2026-08-19T20:30:00Z",
-      "target": 500,
-      "score_a": 530,
-      "score_b": 250,
-      "winner": "A",
-      "status": "contestee",
-      "validate_deadline": "2026-08-21T20:30:00Z",
-      "validated_at": null,
-      "rounds": [
-        {
-          "preneur": "A",
-          "contrat": "generale",
-          "reussi": true,
-          "atout": "coeur",
-          "coinche": 1,
-          "belote": null,
-          "score_a": 500,
-          "score_b": 0,
-          "preneur_id": "4e542fd0-9ce6-41fe-b19d-96d82f8017e9"
-        },
-        {
-          "preneur": "B",
-          "contrat": 120,
-          "points_preneur": 130,
-          "atout": "coeur",
-          "coinche": 1,
-          "belote": null,
-          "reussi": true,
-          "score_a": 30,
-          "score_b": 250,
-          "preneur_id": "f12bb374-5d94-4f6f-89c6-9cf6611e23a6"
-        }
-      ],
-      "contested_by": "f12bb374-5d94-4f6f-89c6-9cf6611e23a6"
-    },
-    {
-      "id": "7d1c2b9e-5a41-4f3e-9c8d-2b6e0f4a1c77",
-      "created_by": "4e542fd0-9ce6-41fe-b19d-96d82f8017e9",
-      "created_at": "2026-08-20T20:30:00Z",
-      "target": 1000,
-      "score_a": 480,
-      "score_b": 290,
-      "winner": "A",
-      "status": "en_cours",
-      "validate_deadline": null,
-      "validated_at": null,
       "rounds": [
         {
           "preneur": "A",
           "preneur_id": "4e542fd0-9ce6-41fe-b19d-96d82f8017e9",
           "contrat": 80,
-          "points_preneur": 100,
-          "belote": null,
-          "atout": "pique",
           "coinche": 1,
-          "score_a": 180,
-          "score_b": 60,
-          "reussi": true
-        },
-        {
-          "preneur": "B",
-          "preneur_id": "dd8f73d0-295d-40e4-a59a-9ed4c86d1f48",
-          "contrat": 90,
-          "points_preneur": 70,
           "belote": null,
+          "points_preneur": 97,
           "atout": "coeur",
-          "coinche": 1,
-          "score_a": 250,
-          "score_b": 0,
-          "reussi": false
+          "reussi": true,
+          "score_a": 180,
+          "score_b": 70
         },
         {
           "preneur": "B",
-          "preneur_id": "396c2136-e04f-4e17-a882-e3cb1b46a40e",
-          "contrat": 100,
-          "points_preneur": 110,
-          "belote": "B",
-          "atout": "trefle",
+          "preneur_id": "1a2b3c4d-0002-4000-8000-00000000a002",
+          "contrat": 90,
           "coinche": 1,
-          "score_a": 50,
-          "score_b": 230,
-          "reussi": true
+          "belote": null,
+          "points_preneur": 70,
+          "atout": "coeur",
+          "reussi": false,
+          "score_a": 250,
+          "score_b": 0
+        },
+        {
+          "preneur": "A",
+          "preneur_id": "1a2b3c4d-0001-4000-8000-00000000a001",
+          "contrat": 100,
+          "coinche": 1,
+          "belote": "A",
+          "points_preneur": 112,
+          "atout": "coeur",
+          "reussi": true,
+          "score_a": 230,
+          "score_b": 50
+        },
+        {
+          "preneur": "B",
+          "preneur_id": "1a2b3c4d-0003-4000-8000-00000000a003",
+          "contrat": 80,
+          "coinche": 1,
+          "belote": null,
+          "points_preneur": 95,
+          "atout": "coeur",
+          "reussi": true,
+          "score_a": 70,
+          "score_b": 180
+        },
+        {
+          "preneur": "A",
+          "preneur_id": "4e542fd0-9ce6-41fe-b19d-96d82f8017e9",
+          "contrat": 110,
+          "coinche": 1,
+          "belote": null,
+          "points_preneur": 121,
+          "atout": "coeur",
+          "reussi": true,
+          "score_a": 230,
+          "score_b": 40
+        },
+        {
+          "preneur": "A",
+          "preneur_id": "1a2b3c4d-0001-4000-8000-00000000a001",
+          "contrat": 80,
+          "coinche": 1,
+          "belote": null,
+          "points_preneur": 88,
+          "atout": "coeur",
+          "reussi": true,
+          "score_a": 170,
+          "score_b": 70
+        },
+        {
+          "preneur": "B",
+          "preneur_id": "1a2b3c4d-0002-4000-8000-00000000a002",
+          "contrat": 120,
+          "coinche": 1,
+          "belote": null,
+          "points_preneur": 90,
+          "atout": "coeur",
+          "reussi": false,
+          "score_a": 280,
+          "score_b": 0
+        },
+        {
+          "preneur": "A",
+          "preneur_id": "4e542fd0-9ce6-41fe-b19d-96d82f8017e9",
+          "contrat": 90,
+          "coinche": 1,
+          "belote": null,
+          "points_preneur": 101,
+          "atout": "coeur",
+          "reussi": true,
+          "score_a": 190,
+          "score_b": 60
         }
       ],
+      "status": "validee",
       "seats": [
         "4e542fd0-9ce6-41fe-b19d-96d82f8017e9",
-        "396c2136-e04f-4e17-a882-e3cb1b46a40e",
-        "6a6e3885-6a3b-47e4-b9c3-aec1a94e7fd5",
-        "dd8f73d0-295d-40e4-a59a-9ed4c86d1f48"
+        "1a2b3c4d-0002-4000-8000-00000000a002",
+        "1a2b3c4d-0001-4000-8000-00000000a001",
+        "1a2b3c4d-0003-4000-8000-00000000a003"
       ],
-      "first_dealer": 0
+      "first_dealer": 0,
+      "dealer_skips": 0,
+      "contested_by": null,
+      "validate_deadline": "2026-09-14T21:00:00.000Z",
+      "validated_at": "2026-09-12T22:00:00.000Z"
+    },
+    {
+      "id": "7f000000-0002-4000-8000-00000000c002",
+      "group_id": "9c0d1e2f-0001-4000-8000-00000000b001",
+      "created_by": "1a2b3c4d-0002-4000-8000-00000000a002",
+      "created_at": "2026-09-19T21:00:00.000Z",
+      "target": 1000,
+      "score_a": 1330,
+      "score_b": 450,
+      "winner": "A",
+      "rounds": [
+        {
+          "preneur": "A",
+          "preneur_id": "1a2b3c4d-0002-4000-8000-00000000a002",
+          "contrat": 80,
+          "coinche": 1,
+          "belote": null,
+          "points_preneur": 102,
+          "atout": "coeur",
+          "reussi": true,
+          "score_a": 180,
+          "score_b": 60
+        },
+        {
+          "preneur": "A",
+          "preneur_id": "1a2b3c4d-0003-4000-8000-00000000a003",
+          "contrat": 100,
+          "coinche": 1,
+          "belote": "A",
+          "points_preneur": 108,
+          "atout": "coeur",
+          "reussi": true,
+          "score_a": 230,
+          "score_b": 50
+        },
+        {
+          "preneur": "B",
+          "preneur_id": "4e542fd0-9ce6-41fe-b19d-96d82f8017e9",
+          "contrat": 90,
+          "coinche": 1,
+          "belote": null,
+          "points_preneur": 85,
+          "atout": "coeur",
+          "reussi": false,
+          "score_a": 250,
+          "score_b": 0
+        },
+        {
+          "preneur": "A",
+          "preneur_id": "1a2b3c4d-0002-4000-8000-00000000a002",
+          "contrat": 110,
+          "coinche": 1,
+          "belote": null,
+          "points_preneur": 125,
+          "atout": "coeur",
+          "reussi": true,
+          "score_a": 240,
+          "score_b": 40
+        },
+        {
+          "preneur": "B",
+          "preneur_id": "1a2b3c4d-0001-4000-8000-00000000a001",
+          "contrat": 80,
+          "coinche": 1,
+          "belote": null,
+          "points_preneur": 91,
+          "atout": "coeur",
+          "reussi": true,
+          "score_a": 70,
+          "score_b": 170
+        },
+        {
+          "preneur": "A",
+          "preneur_id": "1a2b3c4d-0003-4000-8000-00000000a003",
+          "contrat": 90,
+          "coinche": 1,
+          "belote": null,
+          "points_preneur": 99,
+          "atout": "coeur",
+          "reussi": true,
+          "score_a": 190,
+          "score_b": 60
+        },
+        {
+          "preneur": "A",
+          "preneur_id": "1a2b3c4d-0002-4000-8000-00000000a002",
+          "contrat": 80,
+          "coinche": 1,
+          "belote": null,
+          "points_preneur": 94,
+          "atout": "coeur",
+          "reussi": true,
+          "score_a": 170,
+          "score_b": 70
+        }
+      ],
+      "status": "validee",
+      "seats": [
+        "1a2b3c4d-0002-4000-8000-00000000a002",
+        "4e542fd0-9ce6-41fe-b19d-96d82f8017e9",
+        "1a2b3c4d-0003-4000-8000-00000000a003",
+        "1a2b3c4d-0001-4000-8000-00000000a001"
+      ],
+      "first_dealer": 0,
+      "dealer_skips": 0,
+      "contested_by": null,
+      "validate_deadline": "2026-09-21T21:00:00.000Z",
+      "validated_at": "2026-09-19T22:00:00.000Z"
+    },
+    {
+      "id": "7f000000-0003-4000-8000-00000000c003",
+      "group_id": "9c0d1e2f-0001-4000-8000-00000000b001",
+      "created_by": "1a2b3c4d-0002-4000-8000-00000000a002",
+      "created_at": "2026-09-26T21:00:00.000Z",
+      "target": 1500,
+      "score_a": 1570,
+      "score_b": 480,
+      "winner": "A",
+      "rounds": [
+        {
+          "preneur": "A",
+          "preneur_id": "1a2b3c4d-0002-4000-8000-00000000a002",
+          "contrat": 80,
+          "coinche": 1,
+          "belote": null,
+          "points_preneur": 95,
+          "atout": "coeur",
+          "reussi": true,
+          "score_a": 180,
+          "score_b": 70
+        },
+        {
+          "preneur": "B",
+          "preneur_id": "1a2b3c4d-0001-4000-8000-00000000a001",
+          "contrat": 90,
+          "coinche": 1,
+          "belote": null,
+          "points_preneur": 104,
+          "atout": "coeur",
+          "reussi": true,
+          "score_a": 60,
+          "score_b": 190
+        },
+        {
+          "preneur": "A",
+          "preneur_id": "1a2b3c4d-0003-4000-8000-00000000a003",
+          "contrat": 100,
+          "coinche": 1,
+          "belote": "A",
+          "points_preneur": 110,
+          "atout": "coeur",
+          "reussi": true,
+          "score_a": 230,
+          "score_b": 50
+        },
+        {
+          "preneur": "B",
+          "preneur_id": "4e542fd0-9ce6-41fe-b19d-96d82f8017e9",
+          "contrat": 80,
+          "coinche": 1,
+          "belote": null,
+          "points_preneur": 70,
+          "atout": "coeur",
+          "reussi": false,
+          "score_a": 240,
+          "score_b": 0
+        },
+        {
+          "preneur": "A",
+          "preneur_id": "1a2b3c4d-0002-4000-8000-00000000a002",
+          "contrat": 110,
+          "coinche": 1,
+          "belote": null,
+          "points_preneur": 118,
+          "atout": "coeur",
+          "reussi": true,
+          "score_a": 230,
+          "score_b": 40
+        },
+        {
+          "preneur": "A",
+          "preneur_id": "1a2b3c4d-0003-4000-8000-00000000a003",
+          "contrat": 80,
+          "coinche": 1,
+          "belote": null,
+          "points_preneur": 90,
+          "atout": "coeur",
+          "reussi": true,
+          "score_a": 170,
+          "score_b": 70
+        },
+        {
+          "preneur": "B",
+          "preneur_id": "1a2b3c4d-0001-4000-8000-00000000a001",
+          "contrat": 90,
+          "coinche": 1,
+          "belote": null,
+          "points_preneur": 76,
+          "atout": "coeur",
+          "reussi": false,
+          "score_a": 250,
+          "score_b": 0
+        },
+        {
+          "preneur": "A",
+          "preneur_id": "1a2b3c4d-0002-4000-8000-00000000a002",
+          "contrat": 100,
+          "coinche": 1,
+          "belote": null,
+          "points_preneur": 105,
+          "atout": "coeur",
+          "reussi": true,
+          "score_a": 210,
+          "score_b": 60
+        }
+      ],
+      "status": "en_attente",
+      "seats": [
+        "1a2b3c4d-0002-4000-8000-00000000a002",
+        "1a2b3c4d-0001-4000-8000-00000000a001",
+        "1a2b3c4d-0003-4000-8000-00000000a003",
+        "4e542fd0-9ce6-41fe-b19d-96d82f8017e9"
+      ],
+      "first_dealer": 0,
+      "dealer_skips": 0,
+      "contested_by": null,
+      "validate_deadline": "2026-09-28T21:00:00.000Z",
+      "validated_at": null
     }
   ],
   "game_players": [
     {
-      "game_id": "eab3b3c9-990e-43a1-853c-dd4dad1a91ff",
+      "game_id": "7f000000-0001-4000-8000-00000000c001",
       "profile_id": "4e542fd0-9ce6-41fe-b19d-96d82f8017e9",
       "team": "A",
       "confirmed": true,
       "elo_before": 1000,
-      "elo_delta": 22,
-      "elo_after": 1022
+      "elo_delta": 29,
+      "elo_after": 1029
     },
     {
-      "game_id": "eab3b3c9-990e-43a1-853c-dd4dad1a91ff",
-      "profile_id": "6a6e3885-6a3b-47e4-b9c3-aec1a94e7fd5",
+      "game_id": "7f000000-0001-4000-8000-00000000c001",
+      "profile_id": "1a2b3c4d-0002-4000-8000-00000000a002",
+      "team": "B",
+      "confirmed": true,
+      "elo_before": 1000,
+      "elo_delta": -31,
+      "elo_after": 969
+    },
+    {
+      "game_id": "7f000000-0001-4000-8000-00000000c001",
+      "profile_id": "1a2b3c4d-0001-4000-8000-00000000a001",
       "team": "A",
       "confirmed": true,
       "elo_before": 1000,
-      "elo_delta": 22,
-      "elo_after": 1022
+      "elo_delta": 27,
+      "elo_after": 1027
     },
     {
-      "game_id": "eab3b3c9-990e-43a1-853c-dd4dad1a91ff",
-      "profile_id": "396c2136-e04f-4e17-a882-e3cb1b46a40e",
+      "game_id": "7f000000-0001-4000-8000-00000000c001",
+      "profile_id": "1a2b3c4d-0003-4000-8000-00000000a003",
       "team": "B",
       "confirmed": true,
       "elo_before": 1000,
-      "elo_delta": -22,
-      "elo_after": 978
+      "elo_delta": -25,
+      "elo_after": 975
     },
     {
-      "game_id": "eab3b3c9-990e-43a1-853c-dd4dad1a91ff",
-      "profile_id": "dd8f73d0-295d-40e4-a59a-9ed4c86d1f48",
-      "team": "B",
+      "game_id": "7f000000-0002-4000-8000-00000000c002",
+      "profile_id": "1a2b3c4d-0002-4000-8000-00000000a002",
+      "team": "A",
       "confirmed": true,
-      "elo_before": 1000,
-      "elo_delta": -22,
-      "elo_after": 978
+      "elo_before": 969,
+      "elo_delta": 38,
+      "elo_after": 1007
     },
     {
-      "game_id": "8b9ce4a0-53a3-4d89-83dd-c3c708197813",
+      "game_id": "7f000000-0002-4000-8000-00000000c002",
       "profile_id": "4e542fd0-9ce6-41fe-b19d-96d82f8017e9",
-      "team": "A",
-      "confirmed": true,
-      "elo_before": 1022,
-      "elo_delta": -30,
-      "elo_after": 992
-    },
-    {
-      "game_id": "8b9ce4a0-53a3-4d89-83dd-c3c708197813",
-      "profile_id": "382e94bf-3999-42bb-af58-0661352efd6f",
-      "team": "A",
-      "confirmed": true,
-      "elo_before": 1000,
-      "elo_delta": -30,
-      "elo_after": 970
-    },
-    {
-      "game_id": "8b9ce4a0-53a3-4d89-83dd-c3c708197813",
-      "profile_id": "2e6223c8-dc22-41fb-916d-47a3dcdcca82",
       "team": "B",
       "confirmed": true,
-      "elo_before": 1000,
-      "elo_delta": 30,
-      "elo_after": 1030
+      "elo_before": 1029,
+      "elo_delta": -40,
+      "elo_after": 989
     },
     {
-      "game_id": "8b9ce4a0-53a3-4d89-83dd-c3c708197813",
-      "profile_id": "f12bb374-5d94-4f6f-89c6-9cf6611e23a6",
+      "game_id": "7f000000-0002-4000-8000-00000000c002",
+      "profile_id": "1a2b3c4d-0003-4000-8000-00000000a003",
+      "team": "A",
+      "confirmed": true,
+      "elo_before": 975,
+      "elo_delta": 36,
+      "elo_after": 1011
+    },
+    {
+      "game_id": "7f000000-0002-4000-8000-00000000c002",
+      "profile_id": "1a2b3c4d-0001-4000-8000-00000000a001",
       "team": "B",
       "confirmed": true,
-      "elo_before": 1000,
-      "elo_delta": 30,
-      "elo_after": 1030
+      "elo_before": 1027,
+      "elo_delta": -34,
+      "elo_after": 993
     },
     {
-      "game_id": "c385738f-7194-40fd-a8e3-398c40c65059",
+      "game_id": "7f000000-0003-4000-8000-00000000c003",
+      "profile_id": "1a2b3c4d-0002-4000-8000-00000000a002",
+      "team": "A",
+      "confirmed": true,
+      "elo_before": null,
+      "elo_delta": null,
+      "elo_after": null
+    },
+    {
+      "game_id": "7f000000-0003-4000-8000-00000000c003",
+      "profile_id": "1a2b3c4d-0001-4000-8000-00000000a001",
+      "team": "B",
+      "confirmed": false,
+      "elo_before": null,
+      "elo_delta": null,
+      "elo_after": null
+    },
+    {
+      "game_id": "7f000000-0003-4000-8000-00000000c003",
+      "profile_id": "1a2b3c4d-0003-4000-8000-00000000a003",
+      "team": "A",
+      "confirmed": false,
+      "elo_before": null,
+      "elo_delta": null,
+      "elo_after": null
+    },
+    {
+      "game_id": "7f000000-0003-4000-8000-00000000c003",
       "profile_id": "4e542fd0-9ce6-41fe-b19d-96d82f8017e9",
-      "team": "A",
-      "confirmed": true,
-      "elo_before": null,
-      "elo_delta": null,
-      "elo_after": null
-    },
-    {
-      "game_id": "c385738f-7194-40fd-a8e3-398c40c65059",
-      "profile_id": "382e94bf-3999-42bb-af58-0661352efd6f",
-      "team": "A",
-      "confirmed": true,
-      "elo_before": null,
-      "elo_delta": null,
-      "elo_after": null
-    },
-    {
-      "game_id": "c385738f-7194-40fd-a8e3-398c40c65059",
-      "profile_id": "ebc84c9c-b36f-4cc3-85e9-ab31e14a7471",
       "team": "B",
       "confirmed": false,
       "elo_before": null,
       "elo_delta": null,
       "elo_after": null
-    },
-    {
-      "game_id": "c385738f-7194-40fd-a8e3-398c40c65059",
-      "profile_id": "131cb6ef-24b1-4b82-aac4-b041727c0807",
-      "team": "B",
-      "confirmed": false,
-      "elo_before": null,
-      "elo_delta": null,
-      "elo_after": null
-    },
-    {
-      "game_id": "35b79f90-a2dd-45a4-afbf-509f0fd820a5",
-      "profile_id": "4e542fd0-9ce6-41fe-b19d-96d82f8017e9",
-      "team": "A",
-      "confirmed": true,
-      "elo_before": null,
-      "elo_delta": null,
-      "elo_after": null
-    },
-    {
-      "game_id": "35b79f90-a2dd-45a4-afbf-509f0fd820a5",
-      "profile_id": "9ae4395c-3595-4f0e-9622-d82e53c0daad",
-      "team": "A",
-      "confirmed": false,
-      "elo_before": null,
-      "elo_delta": null,
-      "elo_after": null
-    },
-    {
-      "game_id": "35b79f90-a2dd-45a4-afbf-509f0fd820a5",
-      "profile_id": "f12bb374-5d94-4f6f-89c6-9cf6611e23a6",
-      "team": "B",
-      "confirmed": false,
-      "elo_before": null,
-      "elo_delta": null,
-      "elo_after": null
-    },
-    {
-      "game_id": "35b79f90-a2dd-45a4-afbf-509f0fd820a5",
-      "profile_id": "dd8f73d0-295d-40e4-a59a-9ed4c86d1f48",
-      "team": "B",
-      "confirmed": false,
-      "elo_before": null,
-      "elo_delta": null,
-      "elo_after": null
-    },
-    {
-      "game_id": "7d1c2b9e-5a41-4f3e-9c8d-2b6e0f4a1c77",
-      "profile_id": "4e542fd0-9ce6-41fe-b19d-96d82f8017e9",
-      "team": "A",
-      "confirmed": false,
-      "elo_before": null,
-      "elo_delta": null,
-      "elo_after": null
-    },
-    {
-      "game_id": "7d1c2b9e-5a41-4f3e-9c8d-2b6e0f4a1c77",
-      "profile_id": "396c2136-e04f-4e17-a882-e3cb1b46a40e",
-      "team": "B",
-      "confirmed": false,
-      "elo_before": null,
-      "elo_delta": null,
-      "elo_after": null
-    },
-    {
-      "game_id": "7d1c2b9e-5a41-4f3e-9c8d-2b6e0f4a1c77",
-      "profile_id": "6a6e3885-6a3b-47e4-b9c3-aec1a94e7fd5",
-      "team": "A",
-      "confirmed": false,
-      "elo_before": null,
-      "elo_delta": null,
-      "elo_after": null
-    },
-    {
-      "game_id": "7d1c2b9e-5a41-4f3e-9c8d-2b6e0f4a1c77",
-      "profile_id": "dd8f73d0-295d-40e4-a59a-9ed4c86d1f48",
-      "team": "B",
-      "confirmed": false,
-      "elo_before": null,
-      "elo_delta": null,
-      "elo_after": null
-    }
-  ],
-  "profile_emails": [
-    {
-      "id": "5b0e8a1f-3c2d-4e6f-9a7b-1c2d3e4f5a6b",
-      "email": "lucas.martin@gmail.com"
     }
   ]
 }

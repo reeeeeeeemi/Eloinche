@@ -43,7 +43,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let alive = true;
     const load = async (u: string | null) => {
-      const p = u ? await api.getProfile(u).catch(() => null) : null;
+      // Session valide mais profil injoignable (réseau lent au réveil de l'appli) : on réessaie
+      // au lieu de renvoyer vers la connexion, sinon on croit devoir se reconnecter.
+      let p = null;
+      for (let i = 0; u && alive; i++) {
+        try { p = await api.getProfile(u); break; }
+        catch { if (i >= 5) break; await new Promise(r => setTimeout(r, 800 * (i + 1))); }
+      }
       if (!alive) return;
       setUid(u); setMe(p); setReady(true);
     };

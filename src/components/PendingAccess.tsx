@@ -4,7 +4,7 @@ import { Hourglass, ShieldX } from 'lucide-react';
 import { DATA_SOURCE } from '@/lib/data';
 import { useSession } from '@/lib/session';
 
-/** Écran d'un compte pas (encore) accepté par l'admin : il ne voit rien d'autre. */
+/** Écran d'un compte bloqué par l'admin (ou resté en attente d'une ancienne version) : il ne voit rien d'autre. */
 export function PendingAccess() {
   const router = useRouter();
   const { me, signOut } = useSession();

@@ -25,29 +25,54 @@ export interface Round extends RoundInput {
   score_b: number;
 }
 
+/** Compte d'un joueur. */
 export interface Profile {
   id: string;
+  display_name: string;
+  created_at: string;
+  status: 'en_attente' | 'accepte' | 'refuse'; // 'refuse' : compte bloqué
+  is_admin?: boolean;
+}
+
+/** Un joueur dans un groupe, avec son Elo et ses stats dans ce groupe. */
+export interface Player {
+  id: string;             // profile_id
   display_name: string;
   elo: number;
   games_played: number;
   games_won: number;
   games_lost: number;
-  created_at: string;
-  status: 'en_attente' | 'accepte' | 'refuse'; // accès validé par l'admin
-  is_admin?: boolean;
+  joined_at: string;
 }
 
-/** Demande d'accès (compte non accepté), vue par l'admin uniquement. */
-export interface JoinRequest {
+export interface Group {
   id: string;
-  display_name: string;
-  email: string | null;
-  status: 'en_attente' | 'refuse';
+  name: string;
+  created_by: string;
+  created_at: string;
+}
+
+/** Invitation envoyée (vue par les membres du groupe). */
+export interface GroupInvite {
+  id: string;
+  group_id: string;
+  email: string;
+  invited_by: string;
+  created_at: string;
+}
+
+/** Invitation reçue (vue par l'invité). */
+export interface MyInvite {
+  id: string;
+  group_id: string;
+  group_name: string;
+  invited_by_name: string;
   created_at: string;
 }
 
 export interface Game {
   id: string;
+  group_id: string | null;            // null : partie amicale (hors groupe, sans Elo ni validation)
   created_by: string;
   created_at: string;
   target: number;
@@ -63,6 +88,7 @@ export interface Game {
   first_dealer?: number | null;       // index dans seats
   dealer_skips?: number;              // donnes passées sans contrat (personne n'a pris)
   contested_by?: string | null;       // joueur qui a contesté (la partie compte si les 3 autres confirment)
+  guest_names?: Record<string, string> | null; // partie amicale : prénom des invités, par id de place
 }
 
 export interface GamePlayer {
@@ -77,6 +103,7 @@ export interface GamePlayer {
 
 export interface GamePlayerWithName extends GamePlayer {
   display_name: string;
+  guest?: boolean;                    // invité sans compte (partie amicale)
 }
 
 export interface GameWithPlayers extends Game {
@@ -90,7 +117,14 @@ export interface EloPoint {
   elo_delta: number;
 }
 
+export interface StartFriendlyParams {
+  target: number;
+  names: [string, string, string];    // prénoms : à gauche, partenaire, à droite
+  firstDealer: number;
+}
+
 export interface StartGameParams {
+  groupId: string;
   target: number;
   seats: [string, string, string, string];
   firstDealer: number;
@@ -105,22 +139,29 @@ export interface PushSub {
 
 // Contrat que la couche data doit respecter (mock aujourd'hui, Supabase demain)
 export interface DataApi {
-  getProfiles(): Promise<Profile[]>;                     // joueurs acceptés uniquement
-  getProfile(id: string): Promise<Profile | null>;
-  getGames(): Promise<GameWithPlayers[]>;
+  getProfile(id: string): Promise<Profile | null>;       // compte (session)
+  getGroups(): Promise<Group[]>;                         // mes groupes
+  getPlayers(groupId: string): Promise<Player[]>;        // membres du groupe, par Elo décroissant
+  getGames(): Promise<GameWithPlayers[]>;                // parties de tous mes groupes
   getGame(id: string): Promise<GameWithPlayers | null>;
-  getEloHistory(profileId: string): Promise<EloPoint[]>;
+  getEloHistory(groupId: string, profileId: string): Promise<EloPoint[]>;
   startGame(p: StartGameParams): Promise<string>;       // crée la partie « en cours »
+  startFriendlyGame(p: StartFriendlyParams): Promise<string>; // partie amicale, avec 3 invités
   addRound(gameId: string, round: Round): Promise<void>;
   updateRound(gameId: string, index: number, round: Round): Promise<void>;
   deleteRound(gameId: string, index: number): Promise<void>;
   skipDealer(gameId: string): Promise<void>;             // personne ne prend : la donne passe au suivant
   finishGame(gameId: string): Promise<void>;             // en cours -> en attente de validation
-  listJoinRequests(): Promise<JoinRequest[]>;           // admin
-  decideJoinRequest(profileId: string, accept: boolean): Promise<void>; // admin
   confirmGame(gameId: string): Promise<void>;
   contestGame(gameId: string): Promise<void>;
   deleteGame(gameId: string): Promise<void>;
   savePushSubscription(sub: PushSub): Promise<void>;     // cet appareil reçoit les notifs du joueur connecté
   deletePushSubscription(endpoint: string): Promise<void>;
+  createGroup(name: string): Promise<string>;
+  inviteToGroup(groupId: string, email: string): Promise<void>;
+  getInvites(groupId: string): Promise<GroupInvite[]>;  // invitations en cours du groupe
+  getMyInvites(): Promise<MyInvite[]>;
+  respondInvite(inviteId: string, accept: boolean): Promise<void>;
+  cancelInvite(inviteId: string): Promise<void>;
+  removeMember(groupId: string, profileId: string): Promise<void>; // retirer (créateur) ou quitter (soi)
 }

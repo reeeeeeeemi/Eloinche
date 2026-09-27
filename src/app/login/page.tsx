@@ -8,7 +8,7 @@ import { useSession } from '@/lib/session';
 import { useData } from '@/lib/useData';
 
 const FEATURES = [
-  { Icon: Trophy, title: 'Un vrai classement Elo', text: 'Gagner large ou contre plus fort rapporte plus.' },
+  { Icon: Trophy, title: 'Un classement Elo par groupe', text: 'Un classement pour chaque bande de potes. Gagner large ou contre plus fort rapporte plus.' },
   { Icon: Radio, title: 'Les manches en direct', text: 'Saisies par n’importe quel joueur, visibles par les quatre.' },
   { Icon: ShieldCheck, title: 'Pas de triche', text: 'Chaque partie doit être confirmée par l’équipe adverse.' },
 ];
@@ -40,7 +40,7 @@ export default function LoginPage() {
   );
 }
 
-/** Connexion / création de compte (email + mot de passe). Le nouveau compte attend la validation de l'admin. */
+/** Connexion / création de compte (email + mot de passe). Ensuite : créer un groupe ou accepter une invitation. */
 function AuthForm() {
   const router = useRouter();
   const { signIn, signUp } = useSession();
@@ -88,7 +88,7 @@ function AuthForm() {
         {busy ? '…' : signup ? 'Créer mon compte' : 'Se connecter'}
       </button>
       <p className="small muted" style={{ textAlign: 'center', margin: '14px 0 0' }}>
-        {signup ? 'Ton compte sera actif dès que l’organisateur l’aura validé.' : 'Mot de passe oublié ? Demande à l’organisateur de le réinitialiser.'}
+        {signup ? 'Pour rejoindre le groupe de tes potes, crée ton compte avec l’email auquel ils t’ont invité.' : 'Tu restes connecté sur cet appareil tant que tu ne te déconnectes pas.'}
       </p>
     </form>
   );

@@ -1,6 +1,7 @@
 'use client';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, type ReactNode } from 'react';
+import { GroupProvider } from '@/lib/group';
 import { SessionProvider, useSession } from '@/lib/session';
 import { BottomNav } from './BottomNav';
 import { PendingAccess } from './PendingAccess';
@@ -16,6 +17,7 @@ function Gate({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!ready) return;
     if ((!uid || !me) && !isLogin) router.replace('/login');
+    else if (uid && me && isLogin) router.replace('/');
   }, [ready, uid, me, isLogin, router]);
 
   if (!ready) return null;
@@ -33,7 +35,9 @@ function Gate({ children }: { children: ReactNode }) {
 export function AppShell({ children }: { children: ReactNode }) {
   return (
     <SessionProvider>
-      <div className="app"><Gate>{children}</Gate></div>
+      <GroupProvider>
+        <div className="app"><Gate>{children}</Gate></div>
+      </GroupProvider>
     </SessionProvider>
   );
 }

@@ -24,7 +24,6 @@ export default function PartiePage() {
   const router = useRouter();
   const { uid } = useSession();
   const { data: game, loading } = useData(() => api.getGame(gameId), [gameId]);
-  const { data: profiles } = useData(() => api.getProfiles(), []);
   const [tab, setTab] = useState<'scores' | 'stats'>('scores');
   // feuille de saisie : ajout d'une manche, ou modification de la manche d'indice donné
   const [sheet, setSheet] = useState<null | { edit: number | null }>(null);
@@ -53,7 +52,7 @@ export default function PartiePage() {
     );
   }
 
-  const name = (id: string) => profiles?.find(p => p.id === id)?.display_name ?? '…';
+  const name = (id: string) => game.players.find(p => p.profile_id === id)?.display_name ?? '…';
   const A = teamA(game), B = teamB(game);
   const t = { A: game.score_a, B: game.score_b };
   const finished = isFinished(game);
@@ -125,7 +124,9 @@ export default function PartiePage() {
                 : <>{leader.map(name).join(' et ')} gagnent {Math.max(t.A, t.B)} à {Math.min(t.A, t.B)}</>}
             </strong>
             <p className="small" style={{ margin: '-4px 0 14px' }}>
-              La partie sera validée dès qu’un adversaire confirme, ou automatiquement dans 48 h sans contestation.
+              {game.group_id
+                ? 'La partie sera validée dès qu’un adversaire confirme, ou automatiquement dans 48 h sans contestation.'
+                : 'Partie amicale : elle ne compte pour aucun classement.'}
             </p>
             <button className="btn btn-primary btn-block" disabled={saving || !player} onClick={submit}>
               {saving ? 'Enregistrement…' : 'Enregistrer la partie'}

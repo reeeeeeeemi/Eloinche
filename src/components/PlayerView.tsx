@@ -4,16 +4,20 @@ import { LineChart } from '@/components/LineChart';
 import { api } from '@/lib/data';
 import { BASE_ELO } from '@/lib/elo';
 import { fmtDate, signed } from '@/lib/format';
+import { useGroup } from '@/lib/group';
 import { useData } from '@/lib/useData';
 
+/** Fiche d'un joueur dans le groupe affiché. */
 export function PlayerView({ id }: { id: string }) {
-  const { data: p } = useData(() => api.getProfile(id), [id]);
-  const { data: all } = useData(() => api.getProfiles(), []);
-  const { data: hist } = useData(() => api.getEloHistory(id), [id]);
+  const { group } = useGroup();
+  const gid = group?.id;
+  const { data: all } = useData(() => (gid ? api.getPlayers(gid) : Promise.resolve([])), [gid]);
+  const { data: hist } = useData(() => (gid ? api.getEloHistory(gid, id) : Promise.resolve([])), [gid, id]);
   const { data: games } = useData(() => api.getGames(), []);
-  const contests = (games ?? []).filter(g => g.contested_by === id).length;
+  const contests = (games ?? []).filter(g => g.group_id === gid && g.contested_by === id).length;
+  const p = all?.find(x => x.id === id);
 
-  if (!p) return null;
+  if (!p) return all ? <div className="empty">Ce joueur ne fait pas partie du groupe {group?.name}.</div> : null;
   const rank = p.games_played > 0 ? (all ?? []).filter(x => x.games_played > 0).findIndex(x => x.id === p.id) + 1 : null;
   const best = hist?.length ? Math.max(BASE_ELO, ...hist.map(h => h.elo_after)) : BASE_ELO;
 
@@ -22,7 +26,7 @@ export function PlayerView({ id }: { id: string }) {
       <div className="card lb-hero">
         <div style={{ fontSize: 24, fontWeight: 600 }}>{p.display_name}</div>
         <div className="elo-big" style={{ marginTop: 14 }}>{p.elo}</div>
-        <div className="muted small">{rank ? `${rank}e au classement` : 'Pas encore classé'}</div>
+        <div className="muted small">{rank ? `${rank === 1 ? '1er' : `${rank}e`} au classement ${group?.name}` : `Pas encore classé dans ${group?.name}`}</div>
       </div>
 
       <div className="card card-pad">

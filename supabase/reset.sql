@@ -6,7 +6,7 @@
 drop trigger if exists on_auth_user_created on auth.users;
 
 -- cascade : supprime aussi les fonctions qui dépendent de ces tables
-drop table if exists game_players, games, profile_emails, allowed_emails, push_subscriptions, app_settings, profiles cascade;
+drop table if exists game_players, games, profile_emails, allowed_emails, push_subscriptions, app_settings, group_invites, group_members, groups, profiles cascade;
 
 drop function if exists handle_new_user() cascade;
 drop function if exists is_accepted() cascade;
@@ -37,6 +37,17 @@ drop function if exists ordinal(int) cascade;
 drop function if exists game_label(uuid) cascade;
 drop function if exists notify_to_validate(uuid) cascade;
 drop function if exists notify_validated(uuid, jsonb) cascade;
+drop function if exists is_member(uuid) cascade;
+drop function if exists shares_group(uuid) cascade;
+drop function if exists my_email() cascade;
+drop function if exists start_game(uuid, int, uuid[], int) cascade;
+drop function if exists create_group(text) cascade;
+drop function if exists start_friendly_game(int, text[], int) cascade;
+drop function if exists invite_to_group(uuid, text) cascade;
+drop function if exists my_invites() cascade;
+drop function if exists respond_invite(uuid, boolean) cascade;
+drop function if exists cancel_invite(uuid) cascade;
+drop function if exists remove_member(uuid, uuid) cascade;
 
 -- Comptes de connexion déjà créés (optionnel) : décommenter pour repartir de zéro,
 -- sinon ces comptes n'auront pas de profil. Le 1er compte recréé redeviendra admin.

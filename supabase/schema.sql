@@ -81,13 +81,67 @@ create table if not exists game_players (
   primary key (game_id, profile_id)
 );
 
+-- Groupes de potes : chaque groupe a son propre classement (Elo et stats par groupe).
+-- On n'entre dans un groupe que sur invitation (par l'email du compte), acceptée par l'invité.
+create table if not exists groups (
+  id          uuid primary key default gen_random_uuid(),
+  name        text not null check (length(trim(name)) between 1 and 40),
+  created_by  uuid not null references profiles(id),
+  created_at  timestamptz not null default now()
+);
+
+create table if not exists group_members (
+  group_id      uuid not null references groups(id) on delete cascade,
+  profile_id    uuid not null references profiles(id) on delete cascade,
+  elo           int  not null default 1000,
+  games_played  int  not null default 0,
+  games_won     int  not null default 0,
+  games_lost    int  not null default 0,
+  joined_at     timestamptz not null default now(),
+  primary key (group_id, profile_id)
+);
+
+create table if not exists group_invites (
+  id          uuid primary key default gen_random_uuid(),
+  group_id    uuid not null references groups(id) on delete cascade,
+  email       text not null,                       -- en minuscules
+  invited_by  uuid not null references profiles(id),
+  created_at  timestamptz not null default now(),
+  unique (group_id, email)
+);
+
+alter table games add column if not exists group_id uuid references groups(id) on delete cascade;  -- null : partie amicale
+-- Partie amicale : les 3 autres joueurs sont des invités sans compte { id de place : prénom }
+alter table games add column if not exists guest_names jsonb;
+
 create index if not exists idx_games_status on games(status);
+create index if not exists idx_games_group on games(group_id);
+create index if not exists idx_gm_profile on group_members(profile_id);
+create index if not exists idx_invites_email on group_invites(email);
 create index if not exists idx_gp_profile on game_players(profile_id);
 -- Deux joueurs ne peuvent pas porter le même nom (à la casse près)
 create unique index if not exists uniq_profiles_name on profiles (lower(display_name));
 
+-- Mise à niveau (une seule fois) : les joueurs et parties d'avant les groupes vont dans le groupe « CDM »,
+-- avec leur Elo et leurs stats actuels. Les colonnes elo / games_* de profiles ne servent plus ensuite.
+do $$
+declare v_gid uuid; v_owner uuid;
+begin
+  if not exists (select 1 from groups) and exists (select 1 from profiles) then
+    select id into v_owner from profiles order by is_admin desc, created_at limit 1;
+    insert into groups(name, created_by) values ('CDM', v_owner) returning id into v_gid;
+    insert into group_members(group_id, profile_id, elo, games_played, games_won, games_lost, joined_at)
+      select v_gid, id, elo, games_played, games_won, games_lost, created_at from profiles where status = 'accepte';
+    update games set group_id = v_gid where group_id is null;
+  end if;
+end $$;
+
+-- Plus de validation des comptes par l'admin : l'accès aux groupes passe par les invitations.
+alter table profiles alter column status set default 'accepte';
+update profiles set status = 'accepte' where status = 'en_attente';
+
 -- ---------------------------------------------------------------------
--- 2) INSCRIPTION : COMPTE EN ATTENTE, VALIDÉ PAR L'ADMIN
+-- 2) INSCRIPTION
 -- ---------------------------------------------------------------------
 -- N'importe qui peut se connecter avec Google, mais son compte reste « en_attente » (il ne voit
 -- et ne peut rien faire) tant que l'admin ne l'a pas accepté. 1 personne = 1 compte : l'admin
@@ -108,7 +162,7 @@ begin
     v_name := v_full;
   end if;
   insert into public.profiles(id, display_name, status, is_admin)
-  values (new.id, v_name, case when v_first then 'accepte' else 'en_attente' end, v_first);
+  values (new.id, v_name, 'accepte', v_first);
   insert into public.profile_emails(id, email) values (new.id, lower(new.email));
   return new;
 end $$;
@@ -128,6 +182,21 @@ begin
   if auth.uid() is null then raise exception 'non authentifié'; end if;
   if not is_accepted() then raise exception 'compte en attente de validation'; end if;
 end $$;
+
+-- Le joueur connecté est-il membre du groupe ? Partage-t-il un groupe avec ce joueur ? (RLS et fonctions)
+create or replace function is_member(p_group uuid)
+returns boolean language sql stable security definer set search_path=public,pg_temp as $$
+  select exists (select 1 from group_members where group_id = p_group and profile_id = auth.uid());
+$$;
+create or replace function shares_group(p_profile uuid)
+returns boolean language sql stable security definer set search_path=public,pg_temp as $$
+  select exists (select 1 from group_members a join group_members b on b.group_id = a.group_id
+                  where a.profile_id = auth.uid() and b.profile_id = p_profile);
+$$;
+create or replace function my_email()
+returns text language sql stable security definer set search_path=public,pg_temp as $$
+  select email from profile_emails where id = auth.uid();
+$$;
 
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
@@ -253,13 +322,15 @@ end $$;
 create or replace function notify_validated(p_game_id uuid, p_before jsonb)
 returns void language plpgsql security definer set search_path=public,pg_temp as $$
 declare
-  r record; v_label text := game_label(p_game_id); v_winner char(1); v_gap int; v_places text; v_move text;
+  r record; v_label text := game_label(p_game_id); v_winner char(1); v_group uuid; v_gname text;
+  v_gap int; v_places text; v_move text;
 begin
-  select winner into v_winner from games where id = p_game_id;
+  select g.winner, g.group_id, gr.name into v_winner, v_group, v_gname
+    from games g join groups gr on gr.id = g.group_id where g.id = p_game_id;
   for r in
     select a.id, a.rk, (p_before->>a.id::text)::int as before_rk, gp.team, gp.elo_delta
-      from (select id, rank() over (order by elo desc)::int as rk
-              from profiles where status = 'accepte' and games_played > 0) a
+      from (select profile_id as id, rank() over (order by elo desc)::int as rk
+              from group_members where group_id = v_group and games_played > 0) a
       left join game_players gp on gp.profile_id = a.id and gp.game_id = p_game_id
   loop
     v_gap    := abs(coalesce(r.before_rk, r.rk) - r.rk);
@@ -277,7 +348,7 @@ begin
     elsif r.before_rk is not null and r.rk <> r.before_rk then
       perform send_push(array[r.id],
         case when r.rk < r.before_rk then 'Tu gagnes ' else 'Tu perds ' end || v_places,
-        'Tu es maintenant ' || ordinal(r.rk) || ' du classement.', '/');
+        'Tu es maintenant ' || ordinal(r.rk) || ' du classement ' || v_gname || '.', '/?groupe=' || v_group);
     end if;
   end loop;
 end $$;
@@ -300,12 +371,12 @@ begin
   if not found then raise exception 'partie introuvable'; end if;
   if g.status not in ('en_attente','contestee') then return; end if;   -- garde-fou : déjà traitée
 
-  -- Elo moyen de chaque équipe
-  select avg(p.elo) into ra
-    from game_players gp join profiles p on p.id = gp.profile_id
+  -- Elo moyen de chaque équipe (dans le groupe de la partie)
+  select avg(m.elo) into ra
+    from game_players gp join group_members m on m.profile_id = gp.profile_id and m.group_id = g.group_id
     where gp.game_id = p_game_id and gp.team = 'A';
-  select avg(p.elo) into rb
-    from game_players gp join profiles p on p.id = gp.profile_id
+  select avg(m.elo) into rb
+    from game_players gp join group_members m on m.profile_id = gp.profile_id and m.group_id = g.group_id
     where gp.game_id = p_game_id and gp.team = 'B';
 
   ea := 1.0 / (1.0 + power(10, (rb - ra) / 400.0));
@@ -344,26 +415,26 @@ begin
     update game_players set elo_delta = d - bonus where game_id = p_game_id and profile_id = pids[2];
   end loop;
 
-  -- Historise avant/après par joueur (avant de toucher aux profils)
+  -- Historise avant/après par joueur (avant de toucher au classement du groupe)
   update game_players gp
-     set elo_before = p.elo,
-         elo_after  = p.elo + gp.elo_delta
-    from profiles p
-   where gp.profile_id = p.id and gp.game_id = p_game_id;
+     set elo_before = m.elo,
+         elo_after  = m.elo + gp.elo_delta
+    from group_members m
+   where m.profile_id = gp.profile_id and m.group_id = g.group_id and gp.game_id = p_game_id;
 
-  -- Classement avant la partie, pour prévenir ceux qui gagnent / perdent des places
-  select coalesce(jsonb_object_agg(id, rk), '{}'::jsonb) into v_rank_before
-    from (select id, rank() over (order by elo desc) as rk
-            from profiles where status = 'accepte' and games_played > 0) x;
+  -- Classement du groupe avant la partie, pour prévenir ceux qui gagnent / perdent des places
+  select coalesce(jsonb_object_agg(profile_id, rk), '{}'::jsonb) into v_rank_before
+    from (select profile_id, rank() over (order by elo desc) as rk
+            from group_members where group_id = g.group_id and games_played > 0) x;
 
-  -- Applique aux profils
-  update profiles p
-     set elo          = p.elo + gp.elo_delta,
-         games_played = p.games_played + 1,
-         games_won    = p.games_won  + (case when gp.team = g.winner then 1 else 0 end),
-         games_lost   = p.games_lost + (case when gp.team = g.winner then 0 else 1 end)
+  -- Applique au classement du groupe
+  update group_members m
+     set elo          = m.elo + gp.elo_delta,
+         games_played = m.games_played + 1,
+         games_won    = m.games_won  + (case when gp.team = g.winner then 1 else 0 end),
+         games_lost   = m.games_lost + (case when gp.team = g.winner then 0 else 1 end)
     from game_players gp
-   where gp.profile_id = p.id and gp.game_id = p_game_id;
+   where gp.profile_id = m.profile_id and m.group_id = g.group_id and gp.game_id = p_game_id;
 
   update games set status = 'validee', validated_at = now() where id = p_game_id;
   perform notify_validated(p_game_id, v_rank_before);
@@ -375,7 +446,8 @@ end $$;
 
 -- Démarrer une partie (statut en_cours). Le créateur occupe la place 0.
 -- Équipe A = places 0 et 2, équipe B = places 1 et 3.
-create or replace function start_game(p_target int, p_seats uuid[], p_first_dealer int)
+drop function if exists start_game(int, uuid[], int);   -- ancienne version, sans groupe
+create or replace function start_game(p_group uuid, p_target int, p_seats uuid[], p_first_dealer int)
 returns uuid
 language plpgsql security definer set search_path=public,pg_temp as $$
 declare
@@ -384,8 +456,8 @@ declare
 begin
   perform require_accepted();
   if array_length(p_seats,1) <> 4 then raise exception 'il faut 4 joueurs'; end if;
-  if (select count(*) from profiles where id = any(p_seats) and status = 'accepte') <> 4 then
-    raise exception 'un des joueurs n''a pas de compte validé';
+  if (select count(*) from group_members where group_id = p_group and profile_id = any(p_seats)) <> 4 then
+    raise exception 'les 4 joueurs doivent faire partie du groupe';
   end if;
   if (select count(distinct x) from unnest(p_seats) x) <> 4 then
     raise exception 'un joueur est en double';
@@ -393,14 +465,37 @@ begin
   if p_seats[1] <> v_uid then raise exception 'le créateur doit participer à la partie'; end if;
   if p_first_dealer not between 0 and 3 then raise exception 'donneur invalide'; end if;
 
-  insert into games(created_by, target, status, seats, first_dealer)
-  values (v_uid, p_target, 'en_cours', p_seats, p_first_dealer)
+  insert into games(group_id, created_by, target, status, seats, first_dealer)
+  values (p_group, v_uid, p_target, 'en_cours', p_seats, p_first_dealer)
   returning id into v_game;
 
   insert into game_players(game_id, profile_id, team)
   select v_game, pid, case when i % 2 = 1 then 'A' else 'B' end
     from unnest(p_seats) with ordinality as t(pid, i);
 
+  return v_game;
+end $$;
+
+-- Partie amicale (hors groupe) : le créateur et 3 invités sans compte, désignés par leur prénom.
+-- Ne compte pour aucun Elo et n'a pas besoin d'être validée. p_names : [gauche, partenaire, droite].
+create or replace function start_friendly_game(p_target int, p_names text[], p_first_dealer int)
+returns uuid
+language plpgsql security definer set search_path=public,pg_temp as $$
+declare
+  v_uid uuid := auth.uid();
+  v_seats uuid[] := array[v_uid, gen_random_uuid(), gen_random_uuid(), gen_random_uuid()];
+  v_game uuid;
+begin
+  perform require_accepted();
+  if array_length(p_names, 1) <> 3 or exists (select 1 from unnest(p_names) n where length(trim(coalesce(n, ''))) not between 1 and 30) then
+    raise exception 'il faut le prénom des 3 autres joueurs';
+  end if;
+  if p_first_dealer not between 0 and 3 then raise exception 'donneur invalide'; end if;
+  insert into games(group_id, created_by, target, status, seats, first_dealer, guest_names)
+  values (null, v_uid, p_target, 'en_cours', v_seats, p_first_dealer,
+          jsonb_build_object(v_seats[2]::text, trim(p_names[1]), v_seats[3]::text, trim(p_names[2]), v_seats[4]::text, trim(p_names[3])))
+  returning id into v_game;
+  insert into game_players(game_id, profile_id, team, confirmed) values (v_game, v_uid, 'A', true);
   return v_game;
 end $$;
 
@@ -510,6 +605,11 @@ begin
   if not game_finished(g) then
     raise exception 'la partie n''est pas terminée';
   end if;
+  -- partie amicale : enregistrée telle quelle, sans validation ni Elo
+  if g.group_id is null then
+    update games set status = 'validee', validated_at = now() where id = p_game_id;
+    return;
+  end if;
   update games set status = 'en_attente', validate_deadline = now() + interval '48 hours'
    where id = p_game_id;
   update game_players set confirmed = true
@@ -579,14 +679,102 @@ end $$;
 -- Supprimer / abandonner une partie (créateur seulement, tant qu'elle n'est pas validée).
 create or replace function delete_game(p_game_id uuid)
 returns void language plpgsql security definer set search_path=public,pg_temp as $$
-declare v_uid uuid := auth.uid(); v_status text; v_creator uuid;
+declare v_uid uuid := auth.uid(); v_status text; v_creator uuid; v_group uuid;
 begin
   perform require_accepted();
-  select status, created_by into v_status, v_creator from games where id = p_game_id;
+  select status, created_by, group_id into v_status, v_creator, v_group from games where id = p_game_id;
   if not found then raise exception 'partie introuvable'; end if;
   if v_creator <> v_uid then raise exception 'seul le créateur peut supprimer'; end if;
-  if v_status = 'validee' then raise exception 'une partie validée ne peut pas être supprimée'; end if;
+  -- une partie amicale peut toujours être supprimée : elle ne compte pour aucun classement
+  if v_status = 'validee' and v_group is not null then raise exception 'une partie validée ne peut pas être supprimée'; end if;
   delete from games where id = p_game_id;
+end $$;
+
+-- ---------- Groupes ----------
+
+-- Créer un groupe : le créateur en est le premier membre.
+create or replace function create_group(p_name text)
+returns uuid language plpgsql security definer set search_path=public,pg_temp as $$
+declare v_id uuid;
+begin
+  perform require_accepted();
+  if length(trim(coalesce(p_name, ''))) not between 1 and 40 then raise exception 'nom de groupe invalide (40 caractères max)'; end if;
+  insert into groups(name, created_by) values (trim(p_name), auth.uid()) returning id into v_id;
+  insert into group_members(group_id, profile_id) values (v_id, auth.uid());
+  return v_id;
+end $$;
+
+-- Inviter quelqu'un par l'email de son compte (n'importe quel membre). S'il n'a pas encore de compte,
+-- l'invitation l'attend : il la verra dès qu'il s'inscrit avec cet email.
+create or replace function invite_to_group(p_group uuid, p_email text)
+returns void language plpgsql security definer set search_path=public,pg_temp as $$
+declare v_email text := lower(trim(p_email)); v_to uuid; v_gname text; v_who text;
+begin
+  perform require_accepted();
+  if not is_member(p_group) then raise exception 'tu ne fais pas partie de ce groupe'; end if;
+  if v_email !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' then raise exception 'adresse email invalide'; end if;
+  select id into v_to from profile_emails where email = v_email;
+  if v_to is not null and exists (select 1 from group_members where group_id = p_group and profile_id = v_to) then
+    raise exception 'ce joueur fait déjà partie du groupe';
+  end if;
+  insert into group_invites(group_id, email, invited_by) values (p_group, v_email, auth.uid())
+  on conflict (group_id, email) do nothing;
+  if found and v_to is not null then
+    select name into v_gname from groups where id = p_group;
+    select display_name into v_who from profiles where id = auth.uid();
+    perform send_push(array[v_to], 'Invitation', v_who || ' t''invite dans le groupe ' || v_gname || '.', '/groupes');
+  end if;
+end $$;
+
+-- Mes invitations en attente (avec le nom du groupe et de qui m'invite, que je ne peux pas encore lire).
+create or replace function my_invites()
+returns table (id uuid, group_id uuid, group_name text, invited_by_name text, created_at timestamptz)
+language sql stable security definer set search_path=public,pg_temp as $$
+  select i.id, i.group_id, g.name, p.display_name, i.created_at
+    from group_invites i join groups g on g.id = i.group_id join profiles p on p.id = i.invited_by
+   where i.email = my_email()
+   order by i.created_at desc;
+$$;
+
+-- Accepter ou refuser une invitation qui m'est adressée.
+create or replace function respond_invite(p_invite uuid, p_accept boolean)
+returns void language plpgsql security definer set search_path=public,pg_temp as $$
+declare i group_invites;
+begin
+  perform require_accepted();
+  select * into i from group_invites where id = p_invite and email = my_email();
+  if not found then raise exception 'invitation introuvable'; end if;
+  if p_accept then
+    insert into group_members(group_id, profile_id) values (i.group_id, auth.uid()) on conflict do nothing;
+  end if;
+  delete from group_invites where id = p_invite;
+end $$;
+
+-- Annuler une invitation envoyée (n'importe quel membre du groupe).
+create or replace function cancel_invite(p_invite uuid)
+returns void language plpgsql security definer set search_path=public,pg_temp as $$
+begin
+  perform require_accepted();
+  delete from group_invites where id = p_invite and is_member(group_id);
+end $$;
+
+-- Retirer un membre (créateur du groupe seulement), ou quitter le groupe soi-même.
+-- Le créateur ne peut pas partir. Impossible tant que le joueur a une partie non validée dans le groupe.
+create or replace function remove_member(p_group uuid, p_profile uuid)
+returns void language plpgsql security definer set search_path=public,pg_temp as $$
+declare v_owner uuid;
+begin
+  perform require_accepted();
+  select created_by into v_owner from groups where id = p_group;
+  if not found then raise exception 'groupe introuvable'; end if;
+  if p_profile = v_owner then raise exception 'le créateur ne peut pas quitter son groupe'; end if;
+  if p_profile <> auth.uid() and auth.uid() <> v_owner then raise exception 'seul le créateur peut retirer un membre'; end if;
+  if exists (select 1 from games g join game_players gp on gp.game_id = g.id
+              where g.group_id = p_group and gp.profile_id = p_profile
+                and g.status in ('en_cours', 'en_attente', 'contestee')) then
+    raise exception 'ce joueur a une partie en cours ou à valider dans ce groupe';
+  end if;
+  delete from group_members where group_id = p_group and profile_id = p_profile;
 end $$;
 
 -- ADMIN : demandes d'accès (comptes non acceptés), avec leur email.
@@ -648,10 +836,12 @@ do $$
 declare f text;
 begin
   foreach f in array array[
-    'start_game(int,uuid[],int)', 'add_round(uuid,jsonb)', 'update_round(uuid,int,jsonb)',
+    'start_game(uuid,int,uuid[],int)', 'start_friendly_game(int,text[],int)', 'add_round(uuid,jsonb)', 'update_round(uuid,int,jsonb)',
     'delete_round(uuid,int)', 'skip_dealer(uuid)', 'finish_game(uuid)', 'confirm_game(uuid)',
     'contest_game(uuid)', 'delete_game(uuid)', 'list_join_requests()', 'decide_join_request(uuid,boolean)',
-    'save_push_subscription(text,text,text)', 'delete_push_subscription(text)'
+    'save_push_subscription(text,text,text)', 'delete_push_subscription(text)',
+    'create_group(text)', 'invite_to_group(uuid,text)', 'my_invites()', 'respond_invite(uuid,boolean)',
+    'cancel_invite(uuid)', 'remove_member(uuid,uuid)'
   ] loop
     execute format('revoke execute on function %s from public, anon', f);
     execute format('grant execute on function %s to authenticated', f);
@@ -673,20 +863,35 @@ revoke update, insert, delete on profiles from authenticated;
 
 drop policy if exists "profiles_read"   on profiles;
 drop policy if exists "profiles_update" on profiles;
--- On ne voit que les joueurs acceptés (et sa propre fiche, pour connaître son statut)
+-- On ne voit que sa fiche et celles des joueurs de ses groupes
 create policy "profiles_read"   on profiles for select to authenticated
-  using (status = 'accepte' or id = auth.uid());
+  using (id = auth.uid() or shares_group(id));
 
 -- Emails : RLS sans aucune policy -> illisibles via l'API (seulement via list_join_requests)
 alter table profile_emails enable row level security;
 
--- Parties : lecture pour les joueurs acceptés ; aucune écriture directe (tout passe par RPC)
-grant select on games, game_players to authenticated;
+-- Parties et groupes : lecture pour les membres du groupe ; aucune écriture directe (tout passe par RPC)
+alter table groups        enable row level security;
+alter table group_members enable row level security;
+alter table group_invites enable row level security;
+grant select on games, game_players, groups, group_members, group_invites to authenticated;
 
-drop policy if exists "games_read" on games;
-drop policy if exists "gp_read"    on game_players;
-create policy "games_read" on games        for select to authenticated using (is_accepted());
-create policy "gp_read"    on game_players  for select to authenticated using (is_accepted());
+drop policy if exists "games_read"   on games;
+drop policy if exists "gp_read"      on game_players;
+drop policy if exists "groups_read"  on groups;
+drop policy if exists "gm_read"      on group_members;
+drop policy if exists "invites_read" on group_invites;
+-- partie amicale (sans groupe) : visible de son seul créateur
+create policy "games_read"   on games         for select to authenticated
+  using (is_member(group_id) or (group_id is null and created_by = auth.uid()));
+create policy "gp_read"      on game_players  for select to authenticated
+  using (exists (select 1 from games g where g.id = game_id
+                  and (is_member(g.group_id) or (g.group_id is null and g.created_by = auth.uid()))));
+create policy "groups_read"  on groups        for select to authenticated using (is_member(id));
+create policy "gm_read"      on group_members for select to authenticated using (is_member(group_id));
+-- les membres voient les invitations en cours du groupe, l'invité voit les siennes
+create policy "invites_read" on group_invites for select to authenticated
+  using (is_member(group_id) or email = my_email());
 
 -- ---------------------------------------------------------------------
 -- 7) TEMPS RÉEL — les écrans ouverts se mettent à jour quand un autre joueur agit
@@ -695,7 +900,7 @@ create policy "gp_read"    on game_players  for select to authenticated using (i
 do $$
 declare t text;
 begin
-  foreach t in array array['games', 'game_players', 'profiles'] loop
+  foreach t in array array['games', 'game_players', 'profiles', 'groups', 'group_members', 'group_invites'] loop
     begin
       execute format('alter publication supabase_realtime add table %I', t);
     exception when duplicate_object or undefined_object then null;  -- déjà ajoutée / hors Supabase

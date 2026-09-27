@@ -1,7 +1,7 @@
 'use client';
 import { useMemo, useRef, useState } from 'react';
 import { BASE_ELO } from '@/lib/elo';
-import type { GameWithPlayers, Profile } from '@/lib/types';
+import type { GameWithPlayers, Player } from '@/lib/types';
 
 /**
  * Évolution de l'Elo de tous les joueurs classés dans le temps (Elo en ordonnée, date en abscisse).
@@ -32,7 +32,7 @@ const eloAt = (pts: Pt[], t: number) => {
   return v;
 };
 
-export function EloEvolution({ games, profiles, uid }: { games: GameWithPlayers[]; profiles: Profile[]; uid: string | null }) {
+export function EloEvolution({ games, profiles, uid }: { games: GameWithPlayers[]; profiles: Player[]; uid: string | null }) {
   const ranked = useMemo(() => profiles.filter(p => p.games_played > 0).sort((a, b) => b.elo - a.elo), [profiles]);
 
   const { series, t0, t1 } = useMemo(() => {

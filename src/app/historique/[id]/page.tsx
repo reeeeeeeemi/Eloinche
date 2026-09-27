@@ -61,7 +61,7 @@ export default function GameDetailPage() {
         <div className="card">
           <div className="gc-head">
             <span className="dot" style={{ background: st.color }} />
-            <span className="gc-title">{st.label}</span>
+            <span className="gc-title">{g.group_id ? st.label : g.status === 'en_cours' ? 'Amicale · en cours' : 'Amicale'}</span>
             <span className="gc-date">{g.target} pts</span>
           </div>
           <div className="gc-body">{teamBlock('A')}{teamBlock('B')}</div>
