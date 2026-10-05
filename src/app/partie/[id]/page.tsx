@@ -9,7 +9,7 @@ import { Header } from '@/components/Header';
 import { LineChart } from '@/components/LineChart';
 import { PrisesTable } from '@/components/PrisesTable';
 import { api } from '@/lib/data';
-import { ATOUTS, CROIX_MAX, contratLabel, croix, fausseDonneRank, isFinished, isReussi, perdantCroix } from '@/lib/scoring';
+import { ATOUTS, beloteLabel, CROIX_MAX, contratLabel, croix, fausseDonneRank, isFinished, isReussi, perdantCroix } from '@/lib/scoring';
 import { useSession } from '@/lib/session';
 import { dealerOf, teamA, teamB } from '@/lib/table';
 import type { Round } from '@/lib/types';
@@ -166,7 +166,7 @@ export default function PartiePage() {
                       ) : (
                         <>
                           {r.preneur_id ? name(r.preneur_id) : ''} {contratLabel(r.contrat)}{atout ? ` ${atout}` : ''}
-                          {r.coinche === 2 ? ', coinché' : r.coinche === 4 ? ', surcoinché' : ''}{r.belote ? ', belote' : ''}{r.capot ? ', capot' : ''}
+                          {r.coinche === 2 ? ', coinché' : r.coinche === 4 ? ', surcoinché' : ''}{beloteLabel(r)}{r.capot ? ', capot' : ''}
                         </>
                       )}
                     </span>

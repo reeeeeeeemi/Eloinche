@@ -8,7 +8,7 @@ import { LineChart } from '@/components/LineChart';
 import { PrisesTable } from '@/components/PrisesTable';
 import { api } from '@/lib/data';
 import { STATUS, fmtDate, signed, timeLeft } from '@/lib/format';
-import { ATOUTS, CROIX_MAX, contratLabel, croix, isFinished, isReussi, perdantCroix } from '@/lib/scoring';
+import { ATOUTS, beloteLabel, CROIX_MAX, contratLabel, croix, isFinished, isReussi, perdantCroix } from '@/lib/scoring';
 import { useSession } from '@/lib/session';
 import type { Team } from '@/lib/types';
 import { useData } from '@/lib/useData';
@@ -170,7 +170,7 @@ export default function GameDetailPage() {
                   {r.fausse_donne ? `Fausse donne ${teamNames(g, r.fausse_donne)}` : (
                     <>
                       {nameOf(r.preneur_id)} {contratLabel(r.contrat)}{atout ? ` ${atout}` : ''}
-                      {r.coinche === 2 ? ', coinché' : r.coinche === 4 ? ', surcoinché' : ''}{r.belote ? ', belote' : ''}{r.capot ? ', capot' : ''}
+                      {r.coinche === 2 ? ', coinché' : r.coinche === 4 ? ', surcoinché' : ''}{beloteLabel(r)}{r.capot ? ', capot' : ''}
                     </>
                   )}
                 </span>

@@ -4,6 +4,9 @@ export const TOTAL_POINTS = 162;
 export const CAPOT = 250;
 export const GENERALE = 500;
 export const BELOTE = 20;
+/** Tout atout : une belote possible par couleur, 5 points chacune (4 au plus, soit 20). */
+export const BELOTE_TA = 5;
+export const BELOTES_TA_MAX = 4;
 /** Fausse donne d'une paire, à partir de la 2e (et toutes les suivantes) : 160 pour l'adversaire, 0 pour elle. */
 export const FAUSSE_DONNE_PENALTY = 160;
 /** Capot non annoncé : une petite croix pour la paire qui le fait ; à 3 croix, elle perd la partie. */
@@ -11,6 +14,19 @@ export const CROIX_MAX = 3;
 
 /** Points marqués arrondis à la dizaine, 5 vers le haut (85 → 90, 84 → 80, 162 → 160). */
 export const arrondi = (x: number) => Math.round(x / 10) * 10;
+
+/** Points de belote d'une paire (20, ou 5 par belote en tout atout). */
+export function belotePts(r: RoundInput, t: Team): number {
+  if (r.atout === 'ta') return (r.belotes_ta?.[t] ?? 0) * BELOTE_TA;
+  return r.belote === t ? BELOTE : 0;
+}
+
+/** Mention de la belote dans le détail d'une manche (« , belote », « , 3 belotes »). */
+export function beloteLabel(r: RoundInput): string {
+  if (r.atout !== 'ta') return r.belote ? ', belote' : '';
+  const n = (r.belotes_ta?.A ?? 0) + (r.belotes_ta?.B ?? 0);
+  return n === 0 ? '' : n === 1 ? ', 1 belote' : `, ${n} belotes`;
+}
 
 export const isSpecial = (c: RoundInput['contrat']) => c === 'capot' || c === 'generale';
 
@@ -24,7 +40,8 @@ export function isReussi(r: RoundInput): boolean {
   if (pts >= c) return true;
   // La belote du preneur aide à remplir le contrat, à la même condition
   // (ex. 110 annoncé : 90 + belote = réussi ; 100 annoncé : 80 + belote = chuté car 80 ≤ 81).
-  return r.belote === r.preneur && pts + BELOTE >= c;
+  // En tout atout, ce sont ses belotes à 5 points qui comptent.
+  return pts + belotePts(r, r.preneur) >= c;
 }
 
 /**
@@ -34,7 +51,7 @@ export function isReussi(r: RoundInput): boolean {
  * - coinche/surcoinche : (160 + contrat) × 2/×4 au gagnant, 0 au perdant
  * - capot 250 / générale 500 (× coinche), tout au gagnant
  * - capot non annoncé (contrat chiffré) : l'équipe qui fait tous les plis compte 250 au lieu de 162
- * - belote : +20 à l'équipe qui l'annonce, quoi qu'il arrive
+ * - belote : +20 à l'équipe qui l'annonce, quoi qu'il arrive (tout atout : +5 par belote, 4 au plus)
  * - la belote du preneur compte pour remplir le contrat s'il a fait plus que l'adversaire (plus de 81)
  */
 export function computeRound(r: RoundInput): { A: number; B: number } {
@@ -60,7 +77,8 @@ export function computeRound(r: RoundInput): { A: number; B: number } {
       s[reussi ? r.preneur : other] = (pool + c) * r.coinche;
     }
   }
-  if (r.belote) s[r.belote] += BELOTE;
+  s.A += belotePts(r, 'A');
+  s.B += belotePts(r, 'B');
   return s;
 }
 

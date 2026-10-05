@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { Delete, X } from 'lucide-react';
-import { ATOUTS, FAUSSE_DONNE_PENALTY, TOTAL_POINTS, buildRound, fausseDonneRound, isSpecial } from '@/lib/scoring';
+import { ATOUTS, BELOTE_TA, BELOTES_TA_MAX, FAUSSE_DONNE_PENALTY, TOTAL_POINTS, buildRound, fausseDonneRound, isSpecial } from '@/lib/scoring';
 import type { Atout, Coinche, Contrat, Round, Team } from '@/lib/types';
 
 interface Props {
@@ -51,6 +51,7 @@ export function AjoutManche({ teamA, teamB, name, onClose, onSave, fdBefore = { 
   const [active, setActive] = useState<Team>('A');
   const [reussi, setReussi] = useState<boolean | null>(initial && isSpecial(initial.contrat) ? !!initial.reussi : null);
   const [belote, setBelote] = useState<Team | null>(initial?.belote ?? null);
+  const [belotesTa, setBelotesTa] = useState<{ A: number; B: number }>(initial?.belotes_ta ?? { A: 0, B: 0 });
   const [capot, setCapot] = useState<Team | null>(initial?.capot ?? null);
   const [fausseDonne, setFausseDonne] = useState<Team | null>(initial?.fausse_donne ?? null);
   const [plus, setPlus] = useState(false); // panneau des gros contrats (140-180)
@@ -60,6 +61,11 @@ export function AjoutManche({ teamA, teamB, name, onClose, onSave, fdBefore = { 
   const special = contrat !== null && isSpecial(contrat);
   const labelA = teamA.map(name).join('/');
   const labelB = teamB.map(name).join('/');
+
+  // Tout atout : chaque toucher ajoute une belote à la paire, et repart à 0 une fois les 4 couleurs prises.
+  function addBeloteTa(t: Team) {
+    setBelotesTa(prev => ({ ...prev, [t]: prev.A + prev.B < BELOTES_TA_MAX ? prev[t] + 1 : 0 }));
+  }
 
   function toggleCapot(t: Team) {
     const next = capot === t ? null : t;
@@ -90,7 +96,9 @@ export function AjoutManche({ teamA, teamB, name, onClose, onSave, fdBefore = { 
   const preview = fausseDonne ? fausseDonnePreview(fausseDonne, fdBefore)
     : !missing && preneur && contrat !== null
     ? buildRound({
-        preneur, preneur_id: preneurId, contrat, coinche, belote, atout,
+        preneur, preneur_id: preneurId, contrat, coinche, atout,
+        belote: atout === 'ta' ? null : belote,
+        belotes_ta: atout === 'ta' && belotesTa.A + belotesTa.B > 0 ? belotesTa : null,
         capot: special ? null : capot,
         points_preneur: special ? undefined : pointsPreneur ?? 0,
         reussi: special ? !!reussi : undefined,
@@ -184,11 +192,23 @@ export function AjoutManche({ teamA, teamB, name, onClose, onSave, fdBefore = { 
             </div>
           )}
 
-          <div className="opt-row">
-            <button className={`opt-btn ${belote === 'A' ? 'on' : ''}`} onClick={() => setBelote(belote === 'A' ? null : 'A')}>{labelA}</button>
-            <span className="center-label">Belote</span>
-            <button className={`opt-btn ${belote === 'B' ? 'on' : ''}`} onClick={() => setBelote(belote === 'B' ? null : 'B')}>{labelB}</button>
-          </div>
+          {atout === 'ta' ? (
+            <div className="opt-row">
+              <button className={`opt-btn ${belotesTa.A ? 'on' : ''}`} onClick={() => addBeloteTa('A')}>
+                {labelA}{belotesTa.A ? ` ×${belotesTa.A}` : ''}
+              </button>
+              <span className="center-label">Belotes<br />({BELOTE_TA} pts)</span>
+              <button className={`opt-btn ${belotesTa.B ? 'on' : ''}`} onClick={() => addBeloteTa('B')}>
+                {labelB}{belotesTa.B ? ` ×${belotesTa.B}` : ''}
+              </button>
+            </div>
+          ) : (
+            <div className="opt-row">
+              <button className={`opt-btn ${belote === 'A' ? 'on' : ''}`} onClick={() => setBelote(belote === 'A' ? null : 'A')}>{labelA}</button>
+              <span className="center-label">Belote</span>
+              <button className={`opt-btn ${belote === 'B' ? 'on' : ''}`} onClick={() => setBelote(belote === 'B' ? null : 'B')}>{labelB}</button>
+            </div>
+          )}
 
           {!special && (
             <div className="opt-row">

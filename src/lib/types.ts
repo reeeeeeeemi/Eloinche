@@ -15,6 +15,7 @@ export interface RoundInput {
   atout?: Atout | null;
   coinche: Coinche;
   belote: Team | null;
+  belotes_ta?: { A: number; B: number } | null; // tout atout : belotes de chaque paire (une par couleur, 4 au plus)
   capot?: Team | null;          // capot non annoncé réalisé sur un contrat chiffré (250 au lieu de 162)
   fausse_donne?: Team | null;   // manche = fausse donne de cette paire (pas de contrat joué)
   reussi?: boolean;             // saisi pour capot / générale, calculé et stocké pour les autres
