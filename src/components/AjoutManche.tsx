@@ -16,6 +16,16 @@ interface Props {
   initial?: Round;
 }
 
+/** Couleurs en SVG : les glyphes Unicode ♣♦♥♠ ne sont pas centrés verticalement (et deviennent des emoji sur iOS). */
+function SuitIcon({ suit }: { suit: Atout }) {
+  const shape = {
+    trefle: <><circle cx="12" cy="7.5" r="4" /><circle cx="7.5" cy="13" r="4" /><circle cx="16.5" cy="13" r="4" /><path d="M11 12h2l1.5 9h-5z" /></>,
+    carreau: <path d="M12 2l8 10-8 10-8-10z" />,
+    coeur: <path d="M12 21s-7.5-4.6-9.5-9.2C1 8.4 3 5 6.5 5c2 0 3.5 1.1 5.5 3.2C14 6.1 15.5 5 17.5 5 21 5 23 8.4 21.5 11.8 19.5 16.4 12 21 12 21z" />,
+    pique: <path d="M12 2C9 6 3 9 3 13.5c0 3 2.3 5 5 5 1.4 0 2.6-.5 3.3-1.4L10 22h4l-1.3-4.9c.7.9 1.9 1.4 3.3 1.4 2.7 0 5-2 5-5C21 9 15 6 12 2z" />,
+  }[suit as 'trefle' | 'carreau' | 'coeur' | 'pique'];
+  return <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden>{shape}</svg>;
+}
 
 const BIG = [140, 150, 160, 170, 180];
 
@@ -119,9 +129,8 @@ export function AjoutManche({ teamA, teamB, name, onClose, onSave, fdBefore = { 
             {ATOUTS.map(a => (
               <button key={a.key} aria-label={a.name}
                 className={`suit ${a.key === 'carreau' || a.key === 'coeur' ? 'red' : a.key === 'ta' || a.key === 'sa' ? '' : 'black'} ${atout === a.key ? 'on' : ''}`}
-                style={a.label.length > 1 ? { fontSize: 20 } : undefined}
                 onClick={() => setAtout(atout === a.key ? null : a.key)}>
-                {a.label}
+                {a.label.length > 1 ? a.label : <SuitIcon suit={a.key} />}
               </button>
             ))}
           </div>
